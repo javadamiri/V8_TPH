@@ -302,8 +302,8 @@ HeapObject Heap::AllocateRawWith(int size, AllocationType allocation,
 Address Heap::DeserializerAllocate(AllocationType type, int size_in_bytes) {
   if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
     AllocationResult allocation = tp_heap_->Allocate(
-        size_in_bytes, type, AllocationAlignment::kDoubleAligned);
-    return allocation.ToObjectChecked().ptr();
+        size_in_bytes, type, AllocationAlignment::kWordAligned);
+    return (allocation.ToObjectChecked().ptr() - kHeapObjectTag);
   } else {
     UNIMPLEMENTED();  // unimplemented
   }
@@ -394,7 +394,7 @@ bool Heap::InYoungGeneration(MaybeObject object) {
 
 // static
 bool Heap::InYoungGeneration(HeapObject heap_object) {
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) UNREACHABLE();
   bool result = MemoryChunk::FromHeapObject(heap_object)->InYoungGeneration();
 #ifdef DEBUG
   // If in the young generation, then check we're either not in the middle of
@@ -563,7 +563,7 @@ void Heap::ExternalStringTable::AddString(String string) {
   DCHECK(string.IsExternalString());
   DCHECK(!Contains(string));
 
-  if (InYoungGeneration(string)) {
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && InYoungGeneration(string)) {
     young_strings_.push_back(string);
   } else {
     old_strings_.push_back(string);

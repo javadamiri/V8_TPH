@@ -1436,7 +1436,10 @@ bool Compiler::Compile(Handle<SharedFunctionInfo> shared_info,
 
   Isolate* isolate = shared_info->GetIsolate();
   DCHECK(AllowCompilation::IsAllowed(isolate));
+  // TODO(Javad): we do not support multi heap instances yet?
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   DCHECK_EQ(ThreadId::Current(), isolate->thread_id());
+#endif
   DCHECK(!isolate->has_pending_exception());
   DCHECK(!shared_info->HasBytecodeArray());
   VMState<BYTECODE_COMPILER> state(isolate);

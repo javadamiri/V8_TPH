@@ -151,6 +151,7 @@ inline void WriteBarrierForCode(Code host) {
 
 inline void MarkingBarrierForArrayBufferExtension(
     HeapObject object, ArrayBufferExtension* extension) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   heap_internals::MemoryChunk* object_chunk =
       heap_internals::MemoryChunk::FromHeapObject(object);
   if (!extension || !object_chunk->IsMarking()) return;
@@ -249,6 +250,11 @@ inline void MarkingBarrierForDescriptorArray(Heap* heap, HeapObject host,
 
 inline WriteBarrierMode GetWriteBarrierModeForObject(
     HeapObject object, const DisallowHeapAllocation* promise) {
+  // TODO(Javad): no write barriers for TPH
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP
+  return SKIP_WRITE_BARRIER;
+#endif
+
   if (FLAG_disable_write_barriers) return SKIP_WRITE_BARRIER;
   DCHECK(Heap_PageFlagsAreConsistent(object));
   heap_internals::MemoryChunk* chunk =

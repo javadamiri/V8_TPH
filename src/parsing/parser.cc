@@ -481,7 +481,9 @@ void Parser::DeserializeScopeChain(
   InitializeEmptyScopeChain(info);
   Handle<ScopeInfo> outer_scope_info;
   if (maybe_outer_scope_info.ToHandle(&outer_scope_info)) {
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP    
     DCHECK_EQ(ThreadId::Current(), isolate->thread_id());
+#endif
     original_scope_ = Scope::DeserializeScopeChain(
         isolate, zone(), *outer_scope_info, info->script_scope(),
         ast_value_factory(), mode);

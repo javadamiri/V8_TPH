@@ -43,6 +43,7 @@ Handle<String> String::SlowFlatten(Isolate* isolate, Handle<ConsString> cons,
   DCHECK(AllowHeapAllocation::IsAllowed());
   int length = cons->length();
   allocation =
+      !V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
       ObjectInYoungGeneration(*cons) ? allocation : AllocationType::kOld;
   Handle<SeqString> result;
   if (cons->IsOneByteRepresentation()) {
@@ -272,6 +273,7 @@ bool String::MakeExternal(v8::String::ExternalOneByteStringResource* resource) {
 }
 
 bool String::SupportsExternalization() {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
   if (this->IsThinString()) {
     return i::ThinString::cast(*this).actual().SupportsExternalization();
   }
@@ -409,6 +411,8 @@ int32_t String::ToArrayIndex(Address addr) {
 bool String::LooksValid() {
   // TODO(leszeks): Maybe remove this check entirely, Heap::Contains uses
   // basically the same logic as the way we access the heap in the first place.
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+    return third_party_heap::Heap::IsValidHeapObject(*this);
   MemoryChunk* chunk = MemoryChunk::FromHeapObject(*this);
   // RO_SPACE objects should always be valid.
   if (ReadOnlyHeap::Contains(*this)) return true;

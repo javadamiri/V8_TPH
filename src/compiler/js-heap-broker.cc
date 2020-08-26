@@ -152,6 +152,7 @@ class ObjectData : public ZoneObject {
             broker->mode() == JSHeapBroker::kSerializing,
         broker->isolate()->handle_scope_data()->canonical_scope != nullptr);
     CHECK_IMPLIES(broker->mode() == JSHeapBroker::kSerialized,
+                  V8_ENABLE_THIRD_PARTY_HEAP_BOOL || 
                   IsReadOnlyHeapObject(*object));
   }
 
@@ -1192,7 +1193,8 @@ HeapObjectData::HeapObjectData(JSHeapBroker* broker, ObjectData** storage,
 
 InstanceType HeapObjectData::GetMapInstanceType() const {
   ObjectData* map_data = map();
-  if (map_data->should_access_heap()) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+      map_data->should_access_heap()) {
     AllowHandleDereferenceIf allow_handle_dereference(kind());
     return Handle<Map>::cast(map_data->object())->instance_type();
   }
@@ -2214,7 +2216,8 @@ void JSObjectData::SerializeRecursiveAsBoilerplate(JSHeapBroker* broker,
       elements_object->map() == ReadOnlyRoots(isolate).fixed_cow_array_map();
   if (empty_or_cow) {
     // We need to make sure copy-on-write elements are tenured.
-    if (ObjectInYoungGeneration(*elements_object)) {
+    if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
+        ObjectInYoungGeneration(*elements_object)) {
       elements_object = isolate->factory()->CopyAndTenureFixedCOWArray(
           Handle<FixedArray>::cast(elements_object));
       boilerplate->set_elements(*elements_object);
@@ -2654,7 +2657,8 @@ ObjectData* JSHeapBroker::GetOrCreateData(Handle<Object> object) {
     AllowHandleDereference handle_dereference;
     if (object->IsSmi()) {
       new (zone()) ObjectData(this, data_storage, object, kSmi);
-    } else if (IsReadOnlyHeapObject(*object)) {
+    } else if ((V8_ENABLE_THIRD_PARTY_HEAP_BOOL && !SerializingAllowed()) || 
+                (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && IsReadOnlyHeapObject(*object))) {
       new (zone()) ObjectData(this, data_storage, object,
                               kUnserializedReadOnlyHeapObject);
 #define CREATE_DATA_IF_MATCH(name)                                             \

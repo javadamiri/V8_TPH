@@ -759,6 +759,8 @@ class Heap {
   // Returns name of the space.
   V8_EXPORT_PRIVATE static const char* GetSpaceName(AllocationSpace space);
 
+  std::unique_ptr<third_party_heap::Heap>* tp_heap() { return &tp_heap_; }
+
   // ===========================================================================
   // Getters to other components. ==============================================
   // ===========================================================================
@@ -1810,7 +1812,10 @@ class Heap {
 
   size_t global_allocation_limit() const { return global_allocation_limit_; }
 
-  bool always_allocate() { return always_allocate_scope_count_ != 0; }
+  bool always_allocate() { 
+    return V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+           always_allocate_scope_count_ != 0; 
+  }
 
   V8_EXPORT_PRIVATE bool CanExpandOldGeneration(size_t size);
 

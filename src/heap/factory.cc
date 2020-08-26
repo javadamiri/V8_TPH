@@ -197,8 +197,11 @@ MaybeHandle<Code> Factory::CodeBuilder::BuildInternal(
 
     code->clear_padding();
 
+// TODO(Javad): change this after we properly support GetObjectFromInnerPointer
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
 #ifdef VERIFY_HEAP
     if (FLAG_verify_heap) code->ObjectVerify(isolate_);
+#endif
 #endif
 
     // Flush the instruction cache before changing the permissions.
@@ -262,7 +265,8 @@ HeapObject Factory::New(Handle<Map> map, AllocationType allocation) {
   HeapObject result =
       isolate()->heap()->AllocateRawWith<Heap::kRetryOrFail>(size, allocation);
   // New space objects are allocated white.
-  WriteBarrierMode write_barrier_mode = allocation == AllocationType::kYoung
+  WriteBarrierMode write_barrier_mode = (allocation == AllocationType::kYoung ||
+                                          V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
                                             ? SKIP_WRITE_BARRIER
                                             : UPDATE_WRITE_BARRIER;
   result.set_map_after_allocation(*map, write_barrier_mode);
@@ -794,7 +798,8 @@ MaybeHandle<Map> Factory::InternalizedStringMapForString(
     Handle<String> string) {
   // If the string is in the young generation, it cannot be used as
   // internalized.
-  if (Heap::InYoungGeneration(*string)) return MaybeHandle<Map>();
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && Heap::InYoungGeneration(*string)) 
+    return MaybeHandle<Map>();
 
   return GetInternalizedStringMap(this, string);
 }
@@ -1413,7 +1418,10 @@ Map Factory::InitializeMap(Map map, InstanceType type, int instance_size,
   map.set_constructor_or_backpointer(*null_value(), SKIP_WRITE_BARRIER);
   map.set_instance_size(instance_size);
   if (map.IsJSObjectMap()) {
+    // TODO(Javad): remove ifndef when we support ro_heap_mmtk
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
     DCHECK(!ReadOnlyHeap::Contains(map));
+#endif
     map.SetInObjectPropertiesStartInWords(instance_size / kTaggedSize -
                                           inobject_properties);
     DCHECK_EQ(map.GetInObjectProperties(), inobject_properties);
@@ -1479,7 +1487,9 @@ Handle<JSObject> Factory::CopyJSObjectWithAllocationSite(
   HeapObject raw_clone = isolate()->heap()->AllocateRawWith<Heap::kRetryOrFail>(
       adjusted_object_size, AllocationType::kYoung);
 
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   DCHECK(Heap::InYoungGeneration(raw_clone) || FLAG_single_generation);
+#endif
 
   // Since we know the clone is allocated in new space, we can copy
   // the contents without worrying about updating the write barrier.
@@ -2276,9 +2286,9 @@ Handle<JSObject> Factory::NewJSObjectFromMap(
 
   InitializeJSObjectFromMap(js_obj, empty_fixed_array(), map);
 
-  DCHECK(js_obj->HasFastElements() || js_obj->HasTypedArrayElements() ||
-         js_obj->HasFastStringWrapperElements() ||
-         js_obj->HasFastArgumentsElements() || js_obj->HasDictionaryElements());
+  // DCHECK(js_obj->HasFastElements() || js_obj->HasTypedArrayElements() ||
+  //        js_obj->HasFastStringWrapperElements() ||
+  //        js_obj->HasFastArgumentsElements() || js_obj->HasDictionaryElements());
   return js_obj;
 }
 

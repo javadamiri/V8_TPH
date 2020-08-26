@@ -138,7 +138,10 @@ void FixedArray::NoWriteBarrierSet(FixedArray array, int index, Object value) {
   DCHECK_NE(array.map(), array.GetReadOnlyRoots().fixed_cow_array_map());
   DCHECK_LT(static_cast<unsigned>(index),
             static_cast<unsigned>(array.length()));
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   DCHECK(!ObjectInYoungGeneration(value));
+#endif
+
   int offset = OffsetOfElementAt(index);
   RELAXED_WRITE_FIELD(array, offset, value);
 }

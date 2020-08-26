@@ -23,6 +23,7 @@ namespace internal {
 void ArrayBufferTracker::RegisterNew(
     Heap* heap, JSArrayBuffer buffer,
     std::shared_ptr<BackingStore> backing_store) {
+  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   if (!backing_store) return;
   // If {buffer_start} is {nullptr}, we don't have to track and free it.
   if (!backing_store->buffer_start()) return;

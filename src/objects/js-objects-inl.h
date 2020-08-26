@@ -431,8 +431,10 @@ Object JSObject::InObjectPropertyAtPut(int index, Object value,
 void JSObject::InitializeBody(Map map, int start_offset,
                               Object pre_allocated_value, Object filler_value) {
   DCHECK_IMPLIES(filler_value.IsHeapObject(),
+                 V8_ENABLE_THIRD_PARTY_HEAP_BOOL || 
                  !ObjectInYoungGeneration(filler_value));
   DCHECK_IMPLIES(pre_allocated_value.IsHeapObject(),
+                 V8_ENABLE_THIRD_PARTY_HEAP_BOOL || 
                  !ObjectInYoungGeneration(pre_allocated_value));
   int size = map.instance_size();
   int offset = start_offset;
@@ -546,7 +548,9 @@ Code JSFunction::code() const {
 }
 
 void JSFunction::set_code(Code value) {
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   DCHECK(!ObjectInYoungGeneration(value));
+#endif
   RELAXED_WRITE_FIELD(*this, kCodeOffset, value);
 #ifndef V8_DISABLE_WRITE_BARRIERS
   MarkingBarrier(*this, RawField(kCodeOffset), value);
@@ -897,8 +901,11 @@ DEF_GETTER(JSObject, element_dictionary, NumberDictionary) {
 
 void JSReceiver::initialize_properties(Isolate* isolate) {
   ReadOnlyRoots roots(isolate);
+  // TPH does not support this (at least yet)
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   DCHECK(!ObjectInYoungGeneration(roots.empty_fixed_array()));
   DCHECK(!ObjectInYoungGeneration(roots.empty_property_dictionary()));
+#endif
   if (map(isolate).is_dictionary_map()) {
     WRITE_FIELD(*this, kPropertiesOrHashOffset,
                 roots.empty_property_dictionary());

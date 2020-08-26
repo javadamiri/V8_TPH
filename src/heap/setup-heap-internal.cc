@@ -281,7 +281,8 @@ bool Heap::CreateInitialMaps() {
   }
   set_undefined_value(Oddball::cast(obj));
   Oddball::cast(obj).set_kind(Oddball::kUndefined);
-  DCHECK(!InYoungGeneration(roots.undefined_value()));
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || 
+         !InYoungGeneration(roots.undefined_value()));
   {
     AllocationResult allocation =
         Allocate(roots.the_hole_map(), AllocationType::kReadOnly);
@@ -590,7 +591,8 @@ bool Heap::CreateInitialMaps() {
     set_empty_closure_feedback_cell_array(ClosureFeedbackCellArray::cast(obj));
   }
 
-  DCHECK(!InYoungGeneration(roots.empty_fixed_array()));
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+         !InYoungGeneration(roots.empty_fixed_array()));
 
   roots.bigint_map().SetConstructorFunctionIndex(
       Context::BIGINT_FUNCTION_INDEX);

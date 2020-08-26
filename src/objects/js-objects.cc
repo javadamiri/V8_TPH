@@ -2952,9 +2952,10 @@ void MigrateFastToSlow(Isolate* isolate, Handle<JSObject> object,
   // garbage.
   int inobject_properties = new_map->GetInObjectProperties();
   if (inobject_properties) {
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP    
     MemoryChunk* chunk = MemoryChunk::FromHeapObject(*object);
     chunk->InvalidateRecordedSlots(*object);
-
+#endif
     for (int i = 0; i < inobject_properties; i++) {
       FieldIndex index = FieldIndex::ForPropertyIndex(*new_map, i);
       object->RawFastPropertyAtPut(index, Smi::zero());
@@ -4703,6 +4704,8 @@ void JSObject::AddDataElement(Handle<JSObject> object, uint32_t index,
 template <AllocationSiteUpdateMode update_or_check>
 bool JSObject::UpdateAllocationSite(Handle<JSObject> object,
                                     ElementsKind to_kind) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
+  
   if (!object->IsJSArray()) return false;
 
   if (!Heap::InYoungGeneration(*object)) return false;

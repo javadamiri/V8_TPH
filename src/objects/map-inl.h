@@ -230,7 +230,10 @@ FixedArrayBase Map::GetInitialElements() const {
   } else {
     UNREACHABLE();
   }
+  // Third party heap doesn't need this check
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   DCHECK(!ObjectInYoungGeneration(result));
+#endif
   return result;
 }
 

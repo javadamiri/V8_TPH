@@ -1286,39 +1286,14 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
                                                  AllocationFlags flags,
                                                  TNode<RawPtrT> top_address,
                                                  TNode<RawPtrT> limit_address) {
-  Label if_out_of_memory(this, Label::kDeferred);
-
-  // TODO(jgruber,jkummerow): Extract the slow paths (= probably everything
-  // but bump pointer allocation) into a builtin to save code space. The
-  // size_in_bytes check may be moved there as well since a non-smi
-  // size_in_bytes probably doesn't fit into the bump pointer region
-  // (double-check that).
-
-  intptr_t size_in_bytes_constant;
-  bool size_in_bytes_is_constant = false;
-  if (ToIntPtrConstant(size_in_bytes, &size_in_bytes_constant)) {
-    size_in_bytes_is_constant = true;
-    CHECK(Internals::IsValidSmi(size_in_bytes_constant));
-    CHECK_GT(size_in_bytes_constant, 0);
-  } else {
-    GotoIfNot(IsValidPositiveSmi(size_in_bytes), &if_out_of_memory);
-  }
-
-  TNode<RawPtrT> top = Load<RawPtrT>(top_address);
-  TNode<RawPtrT> limit = Load<RawPtrT>(limit_address);
-
-  // If there's not enough space, call the runtime.
-  TVARIABLE(Object, result);
-  Label runtime_call(this, Label::kDeferred), no_runtime_call(this), out(this);
-
+  
   bool needs_double_alignment = flags & kDoubleAlignment;
   bool allow_large_object_allocation = flags & kAllowLargeObjectAllocation;
+  
+  TVARIABLE(Object, result);
+  Label out(this);
 
-  if (allow_large_object_allocation) {
-    Label next(this);
-    GotoIf(IsRegularHeapObjectSize(size_in_bytes), &next);
-
-    TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
+  TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
         AllocateDoubleAlignFlag::encode(needs_double_alignment) |
         AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
     if (FLAG_young_generation_large_objects) {
@@ -1331,77 +1306,156 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
                       SmiTag(size_in_bytes), runtime_flags);
     }
     Goto(&out);
+  
+//   Label if_out_of_memory(this, Label::kDeferred);
 
-    BIND(&next);
-  }
+//   // TODO(jgruber,jkummerow): Extract the slow paths (= probably everything
+//   // but bump pointer allocation) into a builtin to save code space. The
+//   // size_in_bytes check may be moved there as well since a non-smi
+//   // size_in_bytes probably doesn't fit into the bump pointer region
+//   // (double-check that).
 
-  TVARIABLE(IntPtrT, adjusted_size, size_in_bytes);
+//   intptr_t size_in_bytes_constant;
+//   bool size_in_bytes_is_constant = false;
+//   if (ToIntPtrConstant(size_in_bytes, &size_in_bytes_constant)) {
+//     size_in_bytes_is_constant = true;
+//     CHECK(Internals::IsValidSmi(size_in_bytes_constant));
+//     CHECK_GT(size_in_bytes_constant, 0);
+//   } else {
+//     GotoIfNot(IsValidPositiveSmi(size_in_bytes), &if_out_of_memory);
+//   }
 
-  if (needs_double_alignment) {
-    Label next(this);
-    GotoIfNot(WordAnd(top, IntPtrConstant(kDoubleAlignmentMask)), &next);
+// #ifndef V8_ENABLE_THIRD_PARTY_HEAP
+//   TNode<RawPtrT> top = Load<RawPtrT>(top_address);
+//   TNode<RawPtrT> limit = Load<RawPtrT>(limit_address);
+// #else
+//   TNode<RawPtrT> top;
+//   TNode<RawPtrT> limit;
+// #endif
 
-    adjusted_size = IntPtrAdd(size_in_bytes, IntPtrConstant(4));
-    Goto(&next);
+//   // If there's not enough space, call the runtime.
+//   TVARIABLE(Object, result);
+//   Label runtime_call(this, Label::kDeferred), no_runtime_call(this), out(this);
 
-    BIND(&next);
-  }
+//   bool needs_double_alignment = flags & kDoubleAlignment;
+//   bool allow_large_object_allocation = flags & kAllowLargeObjectAllocation;
 
-  TNode<IntPtrT> new_top =
-      IntPtrAdd(UncheckedCast<IntPtrT>(top), adjusted_size.value());
+//   if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
+//     TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
+//         AllocateDoubleAlignFlag::encode(needs_double_alignment) |
+//         AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
+//     if (FLAG_young_generation_large_objects) {
+//       result =
+//           CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
+//                       SmiTag(size_in_bytes), runtime_flags);
+//     } else {
+//       result =
+//           CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
+//                       SmiTag(size_in_bytes), runtime_flags);
+//     }
+//     Goto(&out);
+//   }
 
-  Branch(UintPtrGreaterThanOrEqual(new_top, limit), &runtime_call,
-         &no_runtime_call);
+//   if (allow_large_object_allocation) {
+//     Label next(this);
+// #ifndef V8_ENABLE_THIRD_PARTY_HEAP    
+//     GotoIf(IsRegularHeapObjectSize(size_in_bytes), &next);
+// #else
+//     Goto(&next);
+// #endif
 
-  BIND(&runtime_call);
-  {
-    TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
-        AllocateDoubleAlignFlag::encode(needs_double_alignment) |
-        AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
-    if (flags & kPretenured) {
-      result =
-          CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
-                      SmiTag(size_in_bytes), runtime_flags);
-    } else {
-      result =
-          CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
-                      SmiTag(size_in_bytes), runtime_flags);
-    }
-    Goto(&out);
-  }
+//     TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
+//         AllocateDoubleAlignFlag::encode(needs_double_alignment) |
+//         AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
+//     if (FLAG_young_generation_large_objects) {
+//       result =
+//           CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
+//                       SmiTag(size_in_bytes), runtime_flags);
+//     } else {
+//       result =
+//           CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
+//                       SmiTag(size_in_bytes), runtime_flags);
+//     }
+//     Goto(&out);
 
-  // When there is enough space, return `top' and bump it up.
-  BIND(&no_runtime_call);
-  {
-    StoreNoWriteBarrier(MachineType::PointerRepresentation(), top_address,
-                        new_top);
+//     BIND(&next);
+//   }
 
-    TVARIABLE(IntPtrT, address, UncheckedCast<IntPtrT>(top));
+//   TVARIABLE(IntPtrT, adjusted_size, size_in_bytes);
 
-    if (needs_double_alignment) {
-      Label next(this);
-      GotoIf(IntPtrEqual(adjusted_size.value(), size_in_bytes), &next);
+//   if (needs_double_alignment) {
+//     Label next(this);
+// #ifndef V8_ENABLE_THIRD_PARTY_HEAP    
+//     GotoIfNot(WordAnd(top, IntPtrConstant(kDoubleAlignmentMask)), &next);
+// #else
+//     Goto(&next);
+// #endif
 
-      // Store a filler and increase the address by 4.
-      StoreNoWriteBarrier(MachineRepresentation::kTagged, top,
-                          OnePointerFillerMapConstant());
-      address = IntPtrAdd(UncheckedCast<IntPtrT>(top), IntPtrConstant(4));
-      Goto(&next);
+//     adjusted_size = IntPtrAdd(size_in_bytes, IntPtrConstant(4));
+//     Goto(&next);
 
-      BIND(&next);
-    }
+//     BIND(&next);
+//   }
 
-    result = BitcastWordToTagged(
-        IntPtrAdd(address.value(), IntPtrConstant(kHeapObjectTag)));
-    Goto(&out);
-  }
+// #ifndef V8_ENABLE_THIRD_PARTY_HEAP
+//   TNode<IntPtrT> new_top =
+//       IntPtrAdd(UncheckedCast<IntPtrT>(top), adjusted_size.value());
+// #else
+//   TNode<IntPtrT> new_top;
+// #endif
 
-  if (!size_in_bytes_is_constant) {
-    BIND(&if_out_of_memory);
-    CallRuntime(Runtime::kFatalProcessOutOfMemoryInAllocateRaw,
-                NoContextConstant());
-    Unreachable();
-  }
+//   Branch(UintPtrGreaterThanOrEqual(new_top, limit), &runtime_call,
+//          &no_runtime_call);
+
+//   BIND(&runtime_call);
+//   {
+//     TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
+//         AllocateDoubleAlignFlag::encode(needs_double_alignment) |
+//         AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
+//     if (flags & kPretenured) {
+//       result =
+//           CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
+//                       SmiTag(size_in_bytes), runtime_flags);
+//     } else {
+//       result =
+//           CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
+//                       SmiTag(size_in_bytes), runtime_flags);
+//     }
+//     Goto(&out);
+//   }
+
+//   // When there is enough space, return `top' and bump it up.
+//   BIND(&no_runtime_call);
+//   {
+//     StoreNoWriteBarrier(MachineType::PointerRepresentation(), top_address,
+//                         new_top);
+
+//     TVARIABLE(IntPtrT, address, UncheckedCast<IntPtrT>(top));
+
+//     if (needs_double_alignment) {
+//       Label next(this);
+//       GotoIf(IntPtrEqual(adjusted_size.value(), size_in_bytes), &next);
+
+//       // Store a filler and increase the address by 4.
+//       StoreNoWriteBarrier(MachineRepresentation::kTagged, top,
+//                           OnePointerFillerMapConstant());
+//       address = IntPtrAdd(UncheckedCast<IntPtrT>(top), IntPtrConstant(4));
+//       Goto(&next);
+
+//       BIND(&next);
+//     }
+
+//     result = BitcastWordToTagged(
+//         IntPtrAdd(address.value(), IntPtrConstant(kHeapObjectTag)));
+//     Goto(&out);
+//   }
+
+//   if (!size_in_bytes_is_constant) {
+//     BIND(&if_out_of_memory);
+//     CallRuntime(Runtime::kFatalProcessOutOfMemoryInAllocateRaw,
+//                 NoContextConstant());
+//     Unreachable();
+//   }
 
   BIND(&out);
   return UncheckedCast<HeapObject>(result.value());
@@ -1444,7 +1498,7 @@ TNode<HeapObject> CodeStubAssembler::AllocateInNewSpace(
 
 TNode<HeapObject> CodeStubAssembler::Allocate(TNode<IntPtrT> size_in_bytes,
                                               AllocationFlags flags) {
-  Comment("Allocate");
+  Comment("CodeStubAssembler::Allocate");
   bool const new_space = !(flags & kPretenured);
   bool const allow_large_objects = flags & kAllowLargeObjectAllocation;
   // For optimized allocations, we don't allow the allocation to happen in a
@@ -1466,10 +1520,11 @@ TNode<HeapObject> CodeStubAssembler::Allocate(TNode<IntPtrT> size_in_bytes,
         allow_large_objects ? AllowLargeObjects::kTrue
                             : AllowLargeObjects::kFalse);
   }
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   TNode<ExternalReference> top_address = ExternalConstant(
       new_space
-          ? ExternalReference::new_space_allocation_top_address(isolate())
-          : ExternalReference::old_space_allocation_top_address(isolate()));
+        ? ExternalReference::new_space_allocation_top_address(isolate())
+        : ExternalReference::old_space_allocation_top_address(isolate()));
   DCHECK_EQ(kSystemPointerSize,
             ExternalReference::new_space_allocation_limit_address(isolate())
                     .address() -
@@ -1480,9 +1535,14 @@ TNode<HeapObject> CodeStubAssembler::Allocate(TNode<IntPtrT> size_in_bytes,
                     .address() -
                 ExternalReference::old_space_allocation_top_address(isolate())
                     .address());
+  
   TNode<IntPtrT> limit_address =
       IntPtrAdd(ReinterpretCast<IntPtrT>(top_address),
                 IntPtrConstant(kSystemPointerSize));
+#else
+  TNode<ExternalReference> top_address = ExternalConstant(ExternalReference());
+  TNode<IntPtrT> limit_address;
+#endif
 
   if (flags & kDoubleAlignment) {
     return AllocateRawDoubleAligned(size_in_bytes, flags,
@@ -4115,7 +4175,7 @@ TNode<FixedArray> CodeStubAssembler::ExtractToFixedArray(
     var_result = to_elements;
 
 #ifndef V8_ENABLE_SINGLE_GENERATION
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(V8_ENABLE_THIRD_PARTY_HEAP)
     TNode<IntPtrT> object_word = BitcastTaggedToWord(to_elements);
     TNode<IntPtrT> object_page = PageFromAddress(object_word);
     TNode<IntPtrT> page_flags =

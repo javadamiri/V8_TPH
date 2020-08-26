@@ -1043,7 +1043,8 @@ MaybeHandle<JSObject> ErrorUtils::Construct(
             err, isolate->factory()->message_string(), msg_string, DONT_ENUM),
         JSObject);
   }
-
+// TODO(Javad): this is removing stack trace, becuase it needs GcSafeFindCodeForInnerPointer
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   switch (stack_trace_collection) {
     case StackTraceCollection::kDetailed:
       RETURN_ON_EXCEPTION(
@@ -1057,6 +1058,7 @@ MaybeHandle<JSObject> ErrorUtils::Construct(
     case StackTraceCollection::kNone:
       break;
   }
+#endif
   return err;
 }
 

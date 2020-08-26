@@ -194,7 +194,8 @@ void CopyObjectToObjectElements(Isolate* isolate, FixedArrayBase from_base,
   DCHECK(IsSmiOrObjectElementsKind(to_kind));
 
   WriteBarrierMode write_barrier_mode =
-      (IsObjectElementsKind(from_kind) && IsObjectElementsKind(to_kind))
+      (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
+       IsObjectElementsKind(from_kind) && IsObjectElementsKind(to_kind))
           ? UPDATE_WRITE_BARRIER
           : SKIP_WRITE_BARRIER;
   to.CopyElements(isolate, to_start, from, from_start, copy_size,

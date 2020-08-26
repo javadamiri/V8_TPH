@@ -68,8 +68,10 @@ bool CommonStubCacheChecks(StubCache* stub_cache, Name name, Map map,
                            MaybeObject handler) {
   // Validate that the name and handler do not move on scavenge, and that we
   // can use identity checks instead of structural equality checks.
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP  
   DCHECK(!Heap::InYoungGeneration(name));
   DCHECK(!Heap::InYoungGeneration(handler));
+#endif
   DCHECK(name.IsUniqueName());
   DCHECK(name.HasHashCode());
   if (handler->ptr() != kNullAddress) DCHECK(IC::IsHandler(handler));

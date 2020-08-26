@@ -135,12 +135,14 @@ static int DumpHeapConstants(FILE* out, const char* argv0) {
         if (!object.IsMap()) continue;
         DumpKnownMap(out, heap, i::Heap::GetSpaceName(i::RO_SPACE), object);
       }
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP      
       i::PagedSpaceObjectIterator iterator(heap, heap->map_space());
       for (i::HeapObject object = iterator.Next(); !object.is_null();
            object = iterator.Next()) {
         if (!object.IsMap()) continue;
         DumpKnownMap(out, heap, i::Heap::GetSpaceName(i::MAP_SPACE), object);
       }
+#endif
       i::PrintF(out, "}\n");
     }
 
@@ -156,6 +158,7 @@ static int DumpHeapConstants(FILE* out, const char* argv0) {
         DumpKnownObject(out, heap, i::Heap::GetSpaceName(i::RO_SPACE), object);
       }
 
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
       i::PagedSpaceIterator spit(heap);
       for (i::PagedSpace* s = spit.Next(); s != nullptr; s = spit.Next()) {
         i::PagedSpaceObjectIterator it(heap, s);
@@ -167,6 +170,7 @@ static int DumpHeapConstants(FILE* out, const char* argv0) {
           DumpKnownObject(out, heap, sname, o);
         }
       }
+#endif
       i::PrintF(out, "}\n");
     }
 

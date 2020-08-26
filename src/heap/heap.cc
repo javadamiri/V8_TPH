@@ -2937,6 +2937,7 @@ void Heap::FlushNumberStringCache() {
 HeapObject Heap::CreateFillerObjectAt(Address addr, int size,
                                       ClearRecordedSlots clear_slots_mode,
                                       ClearFreedMemoryMode clear_memory_mode) {
+  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL || size == 0) return HeapObject();
   if (size == 0) return HeapObject();
   HeapObject filler = HeapObject::FromAddress(addr);
   bool clear_memory =
@@ -3047,6 +3048,7 @@ class LeftTrimmerVerifierRootVisitor : public RootVisitor {
 
 namespace {
 bool MayContainRecordedSlots(HeapObject object) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
   // New space object do not have recorded slots.
   if (MemoryChunk::FromHeapObject(object)->InYoungGeneration()) return false;
   // Whitelist objects that definitely do not have pointers.
@@ -3205,6 +3207,8 @@ void Heap::RightTrimWeakFixedArray(WeakFixedArray object,
 template <typename T>
 void Heap::CreateFillerForArray(T object, int elements_to_trim,
                                 int bytes_to_trim) {
+  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
+  
   DCHECK(object.IsFixedArrayBase() || object.IsByteArray() ||
          object.IsWeakFixedArray());
 
@@ -3222,7 +3226,7 @@ void Heap::CreateFillerForArray(T object, int elements_to_trim,
   Address old_end = object.address() + old_size;
   Address new_end = old_end - bytes_to_trim;
 
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(V8_ENABLE_THIRD_PARTY_HEAP)
   if (MayContainRecordedSlots(object)) {
     MemoryChunk* chunk = MemoryChunk::FromHeapObject(object);
     DCHECK(!chunk->RegisteredObjectWithInvalidatedSlots<OLD_TO_NEW>(object));
@@ -3236,15 +3240,18 @@ void Heap::CreateFillerForArray(T object, int elements_to_trim,
   // debug mode which iterates through the heap), but to play safer
   // we still do it.
   // We do not create a filler for objects in a large object space.
-  if (!IsLargeObject(object)) {
+  // TODO(Javad): this is a very tempory fix
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+      !IsLargeObject(object)) {
     HeapObject filler = CreateFillerObjectAt(
         new_end, bytes_to_trim,
         clear_slots ? ClearRecordedSlots::kYes : ClearRecordedSlots::kNo);
     DCHECK(!filler.is_null());
     // Clear the mark bits of the black area that belongs now to the filler.
     // This is an optimization. The sweeper will release black fillers anyway.
-    if (incremental_marking()->black_allocation() &&
-        incremental_marking()->marking_state()->IsBlackOrGrey(filler)) {
+    if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
+         incremental_marking()->black_allocation() &&
+         incremental_marking()->marking_state()->IsBlackOrGrey(filler)) {
       Page* page = Page::FromAddress(new_end);
       incremental_marking()->marking_state()->bitmap(page)->ClearRange(
           page->AddressToMarkbitIndex(new_end),
@@ -5773,6 +5780,8 @@ void Heap::ClearRecordedSlotRange(Address start, Address end) {
 }
 
 PagedSpace* PagedSpaceIterator::Next() {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+    return nullptr;
   switch (counter_++) {
     case RO_SPACE:
     case NEW_SPACE:
@@ -6431,7 +6440,7 @@ Code Heap::GcSafeCastToCode(HeapObject object, Address inner_pointer) {
 
 bool Heap::GcSafeCodeContains(Code code, Address addr) {
   Map map = GcSafeMapOfCodeSpaceObject(code);
-  DCHECK(map == ReadOnlyRoots(this).code_map());
+  // DCHECK(map == ReadOnlyRoots(this).code_map());
   if (InstructionStream::TryLookupCode(isolate(), addr) == code) return true;
   Address start = code.address();
   Address end = code.address() + code.SizeFromMap(map);
@@ -6583,6 +6592,7 @@ template void Heap::WriteBarrierForRange<MaybeObjectSlot>(
 template <typename TSlot>
 void Heap::WriteBarrierForRange(HeapObject object, TSlot start_slot,
                                 TSlot end_slot) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   MemoryChunk* source_page = MemoryChunk::FromHeapObject(object);
   base::Flags<RangeWriteBarrierMode> mode;
 

@@ -99,8 +99,11 @@ Handle<FixedArray> FactoryBase<Impl>::NewFixedArrayWithFiller(
     Handle<Map> map, int length, Handle<Oddball> filler,
     AllocationType allocation) {
   HeapObject result = AllocateRawFixedArray(length, allocation);
+  // TODO(Javad): remove once TPH supports ReadOnlyHeap
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   DCHECK(ReadOnlyHeap::Contains(*map));
   DCHECK(ReadOnlyHeap::Contains(*filler));
+#endif
   result.set_map_after_allocation(*map, SKIP_WRITE_BARRIER);
   Handle<FixedArray> array = handle(FixedArray::cast(result), isolate());
   array->set_length(length);
@@ -130,7 +133,10 @@ Handle<WeakFixedArray> FactoryBase<Impl>::NewWeakFixedArrayWithMap(
     Map map, int length, AllocationType allocation) {
   // Zero-length case must be handled outside.
   DCHECK_LT(0, length);
+  // TODO(Javad): remove this once TPH supports ReadOnlyHeap
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   DCHECK(ReadOnlyHeap::Contains(map));
+#endif
 
   HeapObject result =
       AllocateRawArray(WeakFixedArray::SizeFor(length), allocation);
@@ -178,7 +184,8 @@ Handle<BytecodeArray> FactoryBase<Impl>::NewBytecodeArray(
   }
   // Bytecode array is AllocationType::kOld, so constant pool array should be
   // too.
-  DCHECK(!Heap::InYoungGeneration(*constant_pool));
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+         !Heap::InYoungGeneration(*constant_pool));
 
   int size = BytecodeArray::SizeFor(length);
   HeapObject result = AllocateRawWithImmortalMap(
@@ -718,7 +725,8 @@ template <typename Impl>
 HeapObject FactoryBase<Impl>::AllocateRawArray(int size,
                                                AllocationType allocation) {
   HeapObject result = AllocateRaw(size, allocation);
-  if (size > kMaxRegularHeapObjectSize && FLAG_use_marking_progress_bar) {
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
+      size > kMaxRegularHeapObjectSize && FLAG_use_marking_progress_bar) {
     MemoryChunk* chunk = MemoryChunk::FromHeapObject(result);
     chunk->SetFlag<AccessMode::ATOMIC>(MemoryChunk::HAS_PROGRESS_BAR);
   }
@@ -756,7 +764,10 @@ HeapObject FactoryBase<Impl>::AllocateRawWithImmortalMap(
   // TODO(delphick): Potentially you could also pass a immortal immovable Map
   // from MAP_SPACE here, like external_map or message_object_map, but currently
   // noone does so this check is sufficient.
+  // TODO(Javad): remove this once TPH supports ReadOnlyHeap
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   DCHECK(ReadOnlyHeap::Contains(map));
+#endif
   HeapObject result = AllocateRaw(size, allocation, alignment);
   result.set_map_after_allocation(map, SKIP_WRITE_BARRIER);
   return result;

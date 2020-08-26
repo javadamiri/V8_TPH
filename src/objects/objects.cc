@@ -6737,7 +6737,8 @@ Handle<Derived> HashTable<Derived, Shape>::EnsureCapacity(
   const int kMinCapacityForPretenure = 256;
   bool should_pretenure = allocation == AllocationType::kOld ||
                           ((capacity > kMinCapacityForPretenure) &&
-                           !Heap::InYoungGeneration(*table));
+                            (V8_ENABLE_THIRD_PARTY_HEAP_BOOL || 
+                             !Heap::InYoungGeneration(*table)));
   Handle<Derived> new_table = HashTable::New(
       isolate, new_nof,
       should_pretenure ? AllocationType::kOld : AllocationType::kYoung);
@@ -6783,7 +6784,8 @@ Handle<Derived> HashTable<Derived, Shape>::Shrink(Isolate* isolate,
 
   const int kMinCapacityForPretenure = 256;
   bool pretenure = (at_least_room_for > kMinCapacityForPretenure) &&
-                   !Heap::InYoungGeneration(*table);
+                    (V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+                     !Heap::InYoungGeneration(*table));
   Handle<Derived> new_table =
       HashTable::New(isolate, new_capacity,
                      pretenure ? AllocationType::kOld : AllocationType::kYoung,

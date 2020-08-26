@@ -92,6 +92,10 @@ Reduction MemoryLowering::Reduce(Node* node) {
 Reduction MemoryLowering::ReduceAllocateRaw(
     Node* node, AllocationType allocation_type,
     AllowLargeObjects allow_large_objects, AllocationState const** state_ptr) {
+  
+  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+  //   return NoChange();
+  
   DCHECK_EQ(IrOpcode::kAllocateRaw, node->opcode());
   DCHECK_IMPLIES(allocation_folding_ == AllocationFolding::kDoAllocationFolding,
                  state_ptr != nullptr);
@@ -115,6 +119,32 @@ Reduction MemoryLowering::ReduceAllocateRaw(
     } else {
       allocate_builtin = __ AllocateRegularInOldGenerationStubConstant();
     }
+  }
+
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL){
+    auto done = __ MakeLabel(MachineType::PointerRepresentation());
+    if (!allocate_operator_.is_set()) {
+      auto descriptor = AllocateDescriptor{};
+      auto call_descriptor = Linkage::GetStubCallDescriptor(
+          graph_zone(), descriptor, descriptor.GetStackParameterCount(),
+          CallDescriptor::kCanUseRoots, Operator::kNoThrow);
+      allocate_operator_.set(common()->Call(call_descriptor));
+    }
+    __ Goto(&done, __ Call(allocate_operator_.get(), allocate_builtin, size));
+
+    __ Bind(&done);
+    value = done.PhiAt(0);
+    effect = gasm()->effect();
+    control = gasm()->control();
+
+    if (state_ptr) {
+      // Create an unfoldable allocation group.
+      AllocationGroup* group =
+          new (zone()) AllocationGroup(value, allocation_type, zone());
+      *state_ptr = AllocationState::Closed(group, effect, zone());
+    }
+
+    return Replace(value);
   }
 
   // Determine the top/limit addresses.
@@ -430,6 +460,9 @@ Reduction MemoryLowering::ReduceAllocateRaw(Node* node) {
 WriteBarrierKind MemoryLowering::ComputeWriteBarrierKind(
     Node* node, Node* object, Node* value, AllocationState const* state,
     WriteBarrierKind write_barrier_kind) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+    return kNoWriteBarrier;
+
   if (state && state->IsYoungGenerationAllocation() &&
       state->group()->Contains(object)) {
     write_barrier_kind = kNoWriteBarrier;

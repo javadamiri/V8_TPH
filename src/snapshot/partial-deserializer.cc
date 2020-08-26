@@ -42,8 +42,10 @@ MaybeHandle<Object> PartialDeserializer::Deserialize(
     DisallowHeapAllocation no_gc;
     // Keep track of the code space start and end pointers in case new
     // code objects were unserialized
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP    
     CodeSpace* code_space = isolate->heap()->code_space();
     Address start_address = code_space->top();
+#endif
     Object root;
     VisitRootPointer(Root::kPartialSnapshotCache, nullptr,
                      FullObjectSlot(&root));
@@ -55,7 +57,9 @@ MaybeHandle<Object> PartialDeserializer::Deserialize(
     // There's no code deserialized here. If this assert fires then that's
     // changed and logging should be added to notify the profiler et al of the
     // new code, which also has to be flushed from instruction cache.
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
     CHECK_EQ(start_address, code_space->top());
+#endif
 
     if (FLAG_rehash_snapshot && can_rehash()) Rehash();
     LogNewMapEvents();

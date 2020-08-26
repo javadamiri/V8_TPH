@@ -253,6 +253,8 @@ bool MemoryOptimizer::AllocationTypeNeedsUpdateToOld(Node* const node,
 
 void MemoryOptimizer::VisitAllocateRaw(Node* node,
                                        AllocationState const* state) {
+  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+  //   return;
   DCHECK_EQ(IrOpcode::kAllocateRaw, node->opcode());
   const AllocateParameters& allocation = AllocateParametersOf(node->op());
   AllocationType allocation_type = allocation.allocation_type();

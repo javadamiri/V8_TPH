@@ -1792,7 +1792,6 @@ struct MemoryOptimizationPhase {
   DECL_PIPELINE_PHASE_CONSTANTS(MemoryOptimization)
 
   void Run(PipelineData* data, Zone* temp_zone) {
-    // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
     // The memory optimizer requires the graphs to be trimmed, so trim now.
     GraphTrimmer trimmer(temp_zone, data->graph());
     NodeVector roots(temp_zone);

@@ -413,6 +413,7 @@ bool String::LooksValid() {
   // basically the same logic as the way we access the heap in the first place.
   if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
     return third_party_heap::Heap::IsValidHeapObject(*this);
+  
   MemoryChunk* chunk = MemoryChunk::FromHeapObject(*this);
   // RO_SPACE objects should always be valid.
   if (ReadOnlyHeap::Contains(*this)) return true;

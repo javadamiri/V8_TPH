@@ -21,14 +21,6 @@ namespace internal {
 // each large object. Instead of tracking offset for back references, we
 // reference large objects by index.
 Address DeserializerAllocator::AllocateRaw(SnapshotSpace space, int size) {
-  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
-  //   // AllocationResult result = heap_->AllocateRaw(size, 
-  //   //                                              AllocationType::kOld,
-  //   //                                              AllocationOrigin::kRuntime,
-  //   //                                              AllocationAlignment::kWordAligned);
-  //   return heap_->DeserializerAllocate(AllocationType::kOld, size);
-  //   // return result.ToObjectChecked().address();
-  // }
   const int space_number = static_cast<int>(space);
   if (space == SnapshotSpace::kLargeObject) {
     AlwaysAllocateScope scope(heap_);
@@ -81,13 +73,6 @@ Address DeserializerAllocator::Allocate(SnapshotSpace space, int size) {
   // At each allocation, the regular allocator performs allocation,
   // and a fixed-sized table is used to track and fix all back references.
   if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL){
-    // AllocationType type = (space == SnapshotSpace::kCode) ? 
-    //                         AllocationType::kCode :
-    //                         (space == SnapshotSpace::kReadOnlyHeap) ?
-    //                         AllocationType::kReadOnly :
-    //                         AllocationType::kOld;
-
-    // return heap_->DeserializerAllocate(type, size);
     return AllocateRaw(space, size);
   }
 
@@ -165,7 +150,6 @@ void DeserializerAllocator::DecodeReservation(
 }
 
 bool DeserializerAllocator::ReserveSpace() {
-  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return true;
 #ifdef DEBUG
   for (int i = 0; i < kNumberOfSpaces; ++i) {
     DCHECK_GT(reservations_[i].size(), 0);

@@ -208,8 +208,6 @@ void ArrayBufferSweeper::ReleaseAll(ArrayBufferList* list) {
 
 void ArrayBufferSweeper::Append(JSArrayBuffer object,
                                 ArrayBufferExtension* extension) {
-  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
-  
   CHECK(V8_ARRAY_BUFFER_EXTENSION_BOOL);
   size_t bytes = extension->accounting_length();
 

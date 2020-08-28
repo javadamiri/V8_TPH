@@ -197,11 +197,8 @@ MaybeHandle<Code> Factory::CodeBuilder::BuildInternal(
 
     code->clear_padding();
 
-// TODO(Javad): change this after we properly support GetObjectFromInnerPointer
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
 #ifdef VERIFY_HEAP
     if (FLAG_verify_heap) code->ObjectVerify(isolate_);
-#endif
 #endif
 
     // Flush the instruction cache before changing the permissions.

@@ -1286,7 +1286,7 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
                                                  AllocationFlags flags,
                                                  TNode<RawPtrT> top_address,
                                                  TNode<RawPtrT> limit_address) {
-  
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP  
   bool needs_double_alignment = flags & kDoubleAlignment;
   bool allow_large_object_allocation = flags & kAllowLargeObjectAllocation;
   
@@ -1306,157 +1306,125 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
                       SmiTag(size_in_bytes), runtime_flags);
     }
     Goto(&out);
-  
-//   Label if_out_of_memory(this, Label::kDeferred);
+#else  
+  Label if_out_of_memory(this, Label::kDeferred);
 
-//   // TODO(jgruber,jkummerow): Extract the slow paths (= probably everything
-//   // but bump pointer allocation) into a builtin to save code space. The
-//   // size_in_bytes check may be moved there as well since a non-smi
-//   // size_in_bytes probably doesn't fit into the bump pointer region
-//   // (double-check that).
+  // TODO(jgruber,jkummerow): Extract the slow paths (= probably everything
+  // but bump pointer allocation) into a builtin to save code space. The
+  // size_in_bytes check may be moved there as well since a non-smi
+  // size_in_bytes probably doesn't fit into the bump pointer region
+  // (double-check that).
 
-//   intptr_t size_in_bytes_constant;
-//   bool size_in_bytes_is_constant = false;
-//   if (ToIntPtrConstant(size_in_bytes, &size_in_bytes_constant)) {
-//     size_in_bytes_is_constant = true;
-//     CHECK(Internals::IsValidSmi(size_in_bytes_constant));
-//     CHECK_GT(size_in_bytes_constant, 0);
-//   } else {
-//     GotoIfNot(IsValidPositiveSmi(size_in_bytes), &if_out_of_memory);
-//   }
+  intptr_t size_in_bytes_constant;
+  bool size_in_bytes_is_constant = false;
+  if (ToIntPtrConstant(size_in_bytes, &size_in_bytes_constant)) {
+    size_in_bytes_is_constant = true;
+    CHECK(Internals::IsValidSmi(size_in_bytes_constant));
+    CHECK_GT(size_in_bytes_constant, 0);
+  } else {
+    GotoIfNot(IsValidPositiveSmi(size_in_bytes), &if_out_of_memory);
+  }
 
-// #ifndef V8_ENABLE_THIRD_PARTY_HEAP
-//   TNode<RawPtrT> top = Load<RawPtrT>(top_address);
-//   TNode<RawPtrT> limit = Load<RawPtrT>(limit_address);
-// #else
-//   TNode<RawPtrT> top;
-//   TNode<RawPtrT> limit;
-// #endif
+  TNode<RawPtrT> top = Load<RawPtrT>(top_address);
+  TNode<RawPtrT> limit = Load<RawPtrT>(limit_address);
 
-//   // If there's not enough space, call the runtime.
-//   TVARIABLE(Object, result);
-//   Label runtime_call(this, Label::kDeferred), no_runtime_call(this), out(this);
+  // If there's not enough space, call the runtime.
+  TVARIABLE(Object, result);
+  Label runtime_call(this, Label::kDeferred), no_runtime_call(this), out(this);
 
-//   bool needs_double_alignment = flags & kDoubleAlignment;
-//   bool allow_large_object_allocation = flags & kAllowLargeObjectAllocation;
+  bool needs_double_alignment = flags & kDoubleAlignment;
+  bool allow_large_object_allocation = flags & kAllowLargeObjectAllocation;
 
-//   if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
-//     TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
-//         AllocateDoubleAlignFlag::encode(needs_double_alignment) |
-//         AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
-//     if (FLAG_young_generation_large_objects) {
-//       result =
-//           CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
-//                       SmiTag(size_in_bytes), runtime_flags);
-//     } else {
-//       result =
-//           CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
-//                       SmiTag(size_in_bytes), runtime_flags);
-//     }
-//     Goto(&out);
-//   }
+  if (allow_large_object_allocation) {
+    Label next(this);
+    GotoIf(IsRegularHeapObjectSize(size_in_bytes), &next);
 
-//   if (allow_large_object_allocation) {
-//     Label next(this);
-// #ifndef V8_ENABLE_THIRD_PARTY_HEAP    
-//     GotoIf(IsRegularHeapObjectSize(size_in_bytes), &next);
-// #else
-//     Goto(&next);
-// #endif
+    TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
+        AllocateDoubleAlignFlag::encode(needs_double_alignment) |
+        AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
+    if (FLAG_young_generation_large_objects) {
+      result =
+          CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
+                      SmiTag(size_in_bytes), runtime_flags);
+    } else {
+      result =
+          CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
+                      SmiTag(size_in_bytes), runtime_flags);
+    }
+    Goto(&out);
 
-//     TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
-//         AllocateDoubleAlignFlag::encode(needs_double_alignment) |
-//         AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
-//     if (FLAG_young_generation_large_objects) {
-//       result =
-//           CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
-//                       SmiTag(size_in_bytes), runtime_flags);
-//     } else {
-//       result =
-//           CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
-//                       SmiTag(size_in_bytes), runtime_flags);
-//     }
-//     Goto(&out);
+    BIND(&next);
+  }
 
-//     BIND(&next);
-//   }
+  TVARIABLE(IntPtrT, adjusted_size, size_in_bytes);
 
-//   TVARIABLE(IntPtrT, adjusted_size, size_in_bytes);
+  if (needs_double_alignment) {
+    Label next(this);
+    GotoIfNot(WordAnd(top, IntPtrConstant(kDoubleAlignmentMask)), &next);
 
-//   if (needs_double_alignment) {
-//     Label next(this);
-// #ifndef V8_ENABLE_THIRD_PARTY_HEAP    
-//     GotoIfNot(WordAnd(top, IntPtrConstant(kDoubleAlignmentMask)), &next);
-// #else
-//     Goto(&next);
-// #endif
 
-//     adjusted_size = IntPtrAdd(size_in_bytes, IntPtrConstant(4));
-//     Goto(&next);
+    adjusted_size = IntPtrAdd(size_in_bytes, IntPtrConstant(4));
+    Goto(&next);
 
-//     BIND(&next);
-//   }
+    BIND(&next);
+  }
 
-// #ifndef V8_ENABLE_THIRD_PARTY_HEAP
-//   TNode<IntPtrT> new_top =
-//       IntPtrAdd(UncheckedCast<IntPtrT>(top), adjusted_size.value());
-// #else
-//   TNode<IntPtrT> new_top;
-// #endif
+  TNode<IntPtrT> new_top =
+      IntPtrAdd(UncheckedCast<IntPtrT>(top), adjusted_size.value());
+      
+  Branch(UintPtrGreaterThanOrEqual(new_top, limit), &runtime_call,
+         &no_runtime_call);
 
-//   Branch(UintPtrGreaterThanOrEqual(new_top, limit), &runtime_call,
-//          &no_runtime_call);
+  BIND(&runtime_call);
+  {
+    TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
+        AllocateDoubleAlignFlag::encode(needs_double_alignment) |
+        AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
+    if (flags & kPretenured) {
+      result =
+          CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
+                      SmiTag(size_in_bytes), runtime_flags);
+    } else {
+      result =
+          CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
+                      SmiTag(size_in_bytes), runtime_flags);
+    }
+    Goto(&out);
+  }
 
-//   BIND(&runtime_call);
-//   {
-//     TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
-//         AllocateDoubleAlignFlag::encode(needs_double_alignment) |
-//         AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
-//     if (flags & kPretenured) {
-//       result =
-//           CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
-//                       SmiTag(size_in_bytes), runtime_flags);
-//     } else {
-//       result =
-//           CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
-//                       SmiTag(size_in_bytes), runtime_flags);
-//     }
-//     Goto(&out);
-//   }
+  // When there is enough space, return `top' and bump it up.
+  BIND(&no_runtime_call);
+  {
+    StoreNoWriteBarrier(MachineType::PointerRepresentation(), top_address,
+                        new_top);
 
-//   // When there is enough space, return `top' and bump it up.
-//   BIND(&no_runtime_call);
-//   {
-//     StoreNoWriteBarrier(MachineType::PointerRepresentation(), top_address,
-//                         new_top);
+    TVARIABLE(IntPtrT, address, UncheckedCast<IntPtrT>(top));
 
-//     TVARIABLE(IntPtrT, address, UncheckedCast<IntPtrT>(top));
+    if (needs_double_alignment) {
+      Label next(this);
+      GotoIf(IntPtrEqual(adjusted_size.value(), size_in_bytes), &next);
 
-//     if (needs_double_alignment) {
-//       Label next(this);
-//       GotoIf(IntPtrEqual(adjusted_size.value(), size_in_bytes), &next);
+      // Store a filler and increase the address by 4.
+      StoreNoWriteBarrier(MachineRepresentation::kTagged, top,
+                          OnePointerFillerMapConstant());
+      address = IntPtrAdd(UncheckedCast<IntPtrT>(top), IntPtrConstant(4));
+      Goto(&next);
 
-//       // Store a filler and increase the address by 4.
-//       StoreNoWriteBarrier(MachineRepresentation::kTagged, top,
-//                           OnePointerFillerMapConstant());
-//       address = IntPtrAdd(UncheckedCast<IntPtrT>(top), IntPtrConstant(4));
-//       Goto(&next);
+      BIND(&next);
+    }
 
-//       BIND(&next);
-//     }
+    result = BitcastWordToTagged(
+        IntPtrAdd(address.value(), IntPtrConstant(kHeapObjectTag)));
+    Goto(&out);
+  }
 
-//     result = BitcastWordToTagged(
-//         IntPtrAdd(address.value(), IntPtrConstant(kHeapObjectTag)));
-//     Goto(&out);
-//   }
-
-//   if (!size_in_bytes_is_constant) {
-//     BIND(&if_out_of_memory);
-//     CallRuntime(Runtime::kFatalProcessOutOfMemoryInAllocateRaw,
-//                 NoContextConstant());
-//     Unreachable();
-//   }
-
+  if (!size_in_bytes_is_constant) {
+    BIND(&if_out_of_memory);
+    CallRuntime(Runtime::kFatalProcessOutOfMemoryInAllocateRaw,
+                NoContextConstant());
+    Unreachable();
+  }
+#endif
   BIND(&out);
   return UncheckedCast<HeapObject>(result.value());
 }

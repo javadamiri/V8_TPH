@@ -93,9 +93,6 @@ Reduction MemoryLowering::ReduceAllocateRaw(
     Node* node, AllocationType allocation_type,
     AllowLargeObjects allow_large_objects, AllocationState const** state_ptr) {
   
-  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
-  //   return NoChange();
-  
   DCHECK_EQ(IrOpcode::kAllocateRaw, node->opcode());
   DCHECK_IMPLIES(allocation_folding_ == AllocationFolding::kDoAllocationFolding,
                  state_ptr != nullptr);

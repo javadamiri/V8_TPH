@@ -16,13 +16,9 @@ namespace internal {
 void SetupIsolateDelegate::SetupBuiltins(Isolate* isolate) {
   if (create_heap_objects_) {
     SetupBuiltinsInternal(isolate);
-// TODO(Javad): fix this when we have proper support for 
-// GetObjectFromInnerPointer
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
 #ifdef DEBUG
     DebugEvaluate::VerifyTransitiveBuiltins(isolate);
 #endif  // DEBUG
-#endif
   } else {
     CHECK(isolate->snapshot_available());
   }

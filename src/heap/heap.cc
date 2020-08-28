@@ -5928,6 +5928,14 @@ class UnreachableObjectsFilter : public HeapObjectsFilter {
       reachable_;
 };
 
+void Heap::ResetIterator() {
+  tp_heap_->ResetIterator();
+}
+
+HeapObject Heap::NextObject() {
+  return tp_heap_->NextObject();
+}
+
 HeapObjectIterator::HeapObjectIterator(
     Heap* heap, HeapObjectIterator::HeapObjectsFiltering filtering)
     : heap_(heap),
@@ -5935,6 +5943,9 @@ HeapObjectIterator::HeapObjectIterator(
       filter_(nullptr),
       space_iterator_(nullptr),
       object_iterator_(nullptr) {
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP
+  heap_->ResetIterator();
+#else
   heap_->MakeHeapIterable();
   // Start the iteration.
   space_iterator_ = new SpaceIterator(heap_);
@@ -5946,6 +5957,7 @@ HeapObjectIterator::HeapObjectIterator(
       break;
   }
   object_iterator_ = space_iterator_->Next()->GetObjectIterator(heap_);
+#endif
 }
 
 HeapObjectIterator::~HeapObjectIterator() {
@@ -5969,6 +5981,9 @@ HeapObject HeapObjectIterator::Next() {
 }
 
 HeapObject HeapObjectIterator::NextObject() {
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP
+  return heap_->NextObject();
+#else
   // No iterator means we are done.
   if (object_iterator_.get() == nullptr) return HeapObject();
 
@@ -5989,6 +6004,7 @@ HeapObject HeapObjectIterator::NextObject() {
   // Done with the last space.
   object_iterator_.reset(nullptr);
   return HeapObject();
+#endif
 }
 
 void Heap::UpdateTotalGCTime(double duration) {
@@ -6434,7 +6450,8 @@ Map Heap::GcSafeMapOfCodeSpaceObject(HeapObject object) {
 Code Heap::GcSafeCastToCode(HeapObject object, Address inner_pointer) {
   Code code = Code::unchecked_cast(object);
   DCHECK(!code.is_null());
-  DCHECK(GcSafeCodeContains(code, inner_pointer));
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+          GcSafeCodeContains(code, inner_pointer));
   return code;
 }
 

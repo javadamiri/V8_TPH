@@ -960,7 +960,7 @@ void Code::CodeVerify(Isolate* isolate) {
   CHECK_LE(handler_table_offset(), constant_pool_offset());
   CHECK_LE(constant_pool_offset(), code_comments_offset());
   CHECK_LE(code_comments_offset(), InstructionSize());
-  CHECK_IMPLIES(!ReadOnlyHeap::Contains(*this),
+  CHECK_IMPLIES(!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && !ReadOnlyHeap::Contains(*this),
                 IsAligned(raw_instruction_start(), kCodeAlignment));
   // TODO(delphick): Refactor Factory::CodeBuilder::BuildInternal, so that the
   // following CHECK works builtin trampolines. It currently fails because

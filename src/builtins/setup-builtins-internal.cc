@@ -333,10 +333,7 @@ void SetupIsolateDelegate::SetupBuiltinsInternal(Isolate* isolate) {
 #undef BUILD_ASM
   CHECK_EQ(Builtins::builtin_count, index);
 
-// TODO(Javad): fix this after we properly support HeapObjectIterator
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   ReplacePlaceholders(isolate);
-#endif
 
 #define SET_PROMISE_REJECTION_PREDICTION(Name) \
   builtins->builtin(Builtins::k##Name).set_is_promise_rejection(true);

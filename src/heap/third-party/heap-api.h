@@ -32,6 +32,10 @@ class Heap {
 
   static bool IsValidHeapObject(HeapObject object);
 
+  void ResetIterator();
+
+  HeapObject NextObject();
+
   bool CollectGarbage();
 };
 

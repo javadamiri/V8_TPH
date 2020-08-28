@@ -299,16 +299,6 @@ HeapObject Heap::AllocateRawWith(int size, AllocationType allocation,
   UNREACHABLE();
 }
 
-Address Heap::DeserializerAllocate(AllocationType type, int size_in_bytes) {
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
-    AllocationResult allocation = tp_heap_->Allocate(
-        size_in_bytes, type, AllocationAlignment::kWordAligned);
-    return (allocation.ToObjectChecked().ptr() - kHeapObjectTag);
-  } else {
-    UNIMPLEMENTED();  // unimplemented
-  }
-}
-
 void Heap::OnAllocationEvent(HeapObject object, int size_in_bytes) {
   for (auto& tracker : allocation_trackers_) {
     tracker->AllocationEvent(object.address(), size_in_bytes);

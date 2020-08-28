@@ -2220,6 +2220,10 @@ class Heap {
 
   std::unique_ptr<third_party_heap::Heap> tp_heap_;
 
+public:
+  void ResetIterator();
+  HeapObject NextObject();
+
   // Classes in "heap" can be friends.
   friend class AlwaysAllocateScope;
   friend class ArrayBufferCollector;

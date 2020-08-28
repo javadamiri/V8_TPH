@@ -775,12 +775,11 @@ StartupData SnapshotCreator::CreateBlob(
   // TODO(Javad): this depends on GC which is not supported by TPH yet
   isolate->heap()->CollectAllAvailableGarbage(
       i::GarbageCollectionReason::kSnapshotCreator);
+#endif
   {
     i::HandleScope scope(isolate);
-    // TODO(Javad): TPH does not support HeapObjectIterator yet
     isolate->heap()->CompactWeakArrayLists(internal::AllocationType::kOld);
   }
-#endif
 
   if (function_code_handling == FunctionCodeHandling::kClear) {
     // Clear out re-compilable data from all shared function infos. Any
@@ -795,8 +794,6 @@ StartupData SnapshotCreator::CreateBlob(
     // seen JSRegExp objects.
     i::HandleScope scope(isolate);
     std::vector<i::Handle<i::SharedFunctionInfo>> sfis_to_clear;
-  // TODO(Javad): we do not support HeapObjectIterator yet
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
     {  // Heap allocation is disallowed within this scope.
       i::HeapObjectIterator heap_iterator(isolate->heap());
       for (i::HeapObject current_obj = heap_iterator.Next();
@@ -815,7 +812,6 @@ StartupData SnapshotCreator::CreateBlob(
         }
       }
     }
-#endif
 
     // Must happen after heap iteration since SFI::DiscardCompiled may allocate.
     for (i::Handle<i::SharedFunctionInfo> shared : sfis_to_clear) {
@@ -845,8 +841,6 @@ StartupData SnapshotCreator::CreateBlob(
   i::SerializedHandleChecker handle_checker(isolate, &contexts);
   CHECK(handle_checker.CheckGlobalAndEternalHandles());
 
-  // TODO(Javad): TPH does not support HeapObjectIterator yet
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   i::HeapObjectIterator heap_iterator(isolate->heap());
   for (i::HeapObject current_obj = heap_iterator.Next(); !current_obj.is_null();
        current_obj = heap_iterator.Next()) {
@@ -876,16 +870,12 @@ StartupData SnapshotCreator::CreateBlob(
       }
     }
   }
-#endif
 
   i::ReadOnlySerializer read_only_serializer(isolate);
   read_only_serializer.SerializeReadOnlyRoots();
 
   i::StartupSerializer startup_serializer(isolate, &read_only_serializer);
-  // TODO(Javad): doesn't seem applicable to TPH, and causes seg fault
-// #ifndef V8_ENABLE_THIRD_PARTY_HEAP
   startup_serializer.SerializeStrongReferences();
-// #endif
 
   // Serialize each context with a new partial serializer.
   std::vector<i::SnapshotData*> context_snapshots;
@@ -900,9 +890,7 @@ StartupData SnapshotCreator::CreateBlob(
         isolate, &startup_serializer,
         is_default_context ? data->default_embedder_fields_serializer_
                            : data->embedder_fields_serializers_[i - 1]);
-// #ifndef V8_ENABLE_THIRD_PARTY_HEAP    
     partial_serializer.Serialize(&contexts[i], !is_default_context);
-// #endif
     can_be_rehashed = can_be_rehashed && partial_serializer.can_be_rehashed();
     context_snapshots.push_back(new i::SnapshotData(&partial_serializer));
   }
@@ -912,9 +900,7 @@ StartupData SnapshotCreator::CreateBlob(
 
   startup_serializer.CheckNoDirtyFinalizationRegistries();
 
-// #ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   read_only_serializer.FinalizeSerialization();
-// #endif
   can_be_rehashed = can_be_rehashed && read_only_serializer.can_be_rehashed();
 
   i::SnapshotData read_only_snapshot(&read_only_serializer);

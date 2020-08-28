@@ -68,7 +68,7 @@ void ReadOnlySerializer::FinalizeSerialization() {
   SerializeDeferredObjects();
   Pad();
 
-#if defined(DEBUG) && !defined(V8_ENABLE_THIRD_PARTY_HEAP)
+#ifdef DEBUG
   // Check that every object on read-only heap is reachable (and was
   // serialized).
   ReadOnlyHeapObjectIterator iterator(isolate()->read_only_heap());

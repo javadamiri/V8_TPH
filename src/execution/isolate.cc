@@ -3393,9 +3393,9 @@ bool Isolate::Init(ReadOnlyDeserializer* read_only_deserializer,
   heap_.SetUp();
   ReadOnlyHeap::SetUp(this, read_only_deserializer);
 
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
+// #ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   heap_.SetUpSpaces();
-#endif
+// #endif
 
   isolate_data_.external_reference_table()->Init(this);
 

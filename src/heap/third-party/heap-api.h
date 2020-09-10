@@ -14,7 +14,10 @@ namespace internal {
 namespace third_party_heap {
 
 class Heap {
+  Address tph_data_;
+
  public:
+  Heap(Address data): tph_data_(data) {}
   static std::unique_ptr<Heap> New(v8::internal::Isolate* isolate);
 
   static v8::internal::Isolate* GetIsolate(Address address);
@@ -37,6 +40,9 @@ class Heap {
   HeapObject NextObject();
 
   bool CollectGarbage();
+
+  // Accesors
+  Address data() { return tph_data_; }
 };
 
 }  // namespace third_party_heap

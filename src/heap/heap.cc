@@ -1309,6 +1309,10 @@ TimedHistogram* Heap::GCTypeTimer(GarbageCollector collector) {
 
 void Heap::CollectAllGarbage(int flags, GarbageCollectionReason gc_reason,
                              const v8::GCCallbackFlags gc_callback_flags) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
+    tp_heap_->CollectGarbage();
+    return;
+  }
   // Since we are ignoring the return value, the exact choice of space does
   // not matter, so long as we do not specify NEW_SPACE, which would not
   // cause a full GC.
@@ -1673,7 +1677,8 @@ int Heap::NotifyContextDisposed(bool dependant_context) {
   }
 
   number_of_disposed_maps_ = retained_maps().length();
-  tracer()->AddContextDisposalTime(MonotonicallyIncreasingTimeInMs());
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)  
+    tracer()->AddContextDisposalTime(MonotonicallyIncreasingTimeInMs());
   return ++contexts_disposed_;
 }
 
@@ -2855,6 +2860,8 @@ HeapObject Heap::AlignWithFiller(HeapObject object, int object_size,
 
 void* Heap::AllocateExternalBackingStore(
     const std::function<void*(size_t)>& allocate, size_t byte_length) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return allocate(byte_length);
+  
   if (!always_allocate()) {
     size_t new_space_backing_store_bytes =
         new_space()->ExternalBackingStoreBytes();
@@ -2980,6 +2987,8 @@ HeapObject Heap::CreateFillerObjectAt(Address addr, int size,
 }
 
 bool Heap::CanMoveObjectStart(HeapObject object) {
+  // TODO(Javad): ultimately this function should not be called when using TPH
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
   if (!FLAG_move_object_start) return false;
 
   // Sampling heap profiler may have a reference to the object.
@@ -3823,6 +3832,8 @@ void Heap::CollectGarbageOnMemoryPressure() {
 
 void Heap::MemoryPressureNotification(MemoryPressureLevel level,
                                       bool is_isolate_locked) {
+  // TODO(Javad): we may need to do something here when TPH supports GC
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   MemoryPressureLevel previous = memory_pressure_level_;
   memory_pressure_level_ = level;
   if ((previous != MemoryPressureLevel::kCritical &&
@@ -5040,6 +5051,10 @@ void Heap::EnableInlineAllocation() {
 
 
 void Heap::DisableInlineAllocation() {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
+    inline_allocation_disabled_ = true;
+    return;
+  }
   if (inline_allocation_disabled_) return;
   inline_allocation_disabled_ = true;
 
@@ -5214,6 +5229,7 @@ void Heap::SetUpFromReadOnlyHeap(ReadOnlyHeap* ro_heap) {
 }
 
 void Heap::SetUpSpaces() {
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   // Ensure SetUpFromReadOnlySpace has been ran.
   DCHECK_NOT_NULL(read_only_space_);
   space_[NEW_SPACE] = new_space_ =
@@ -5279,6 +5295,9 @@ void Heap::SetUpSpaces() {
   }
 
   write_protect_code_memory_ = FLAG_write_protect_code_memory;
+#else
+  array_buffer_sweeper_.reset(new ArrayBufferSweeper(this));
+#endif
 }
 
 void Heap::InitializeHashSeed() {
@@ -5928,6 +5947,7 @@ class UnreachableObjectsFilter : public HeapObjectsFilter {
       reachable_;
 };
 
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP
 void Heap::ResetIterator() {
   tp_heap_->ResetIterator();
 }
@@ -5935,6 +5955,7 @@ void Heap::ResetIterator() {
 HeapObject Heap::NextObject() {
   return tp_heap_->NextObject();
 }
+#endif
 
 HeapObjectIterator::HeapObjectIterator(
     Heap* heap, HeapObjectIterator::HeapObjectsFiltering filtering)

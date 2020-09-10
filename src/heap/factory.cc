@@ -1703,7 +1703,9 @@ Handle<FixedArray> Factory::CopyFixedArray(Handle<FixedArray> array) {
 
 Handle<FixedArray> Factory::CopyAndTenureFixedCOWArray(
     Handle<FixedArray> array) {
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   DCHECK(Heap::InYoungGeneration(*array));
+#endif
   Handle<FixedArray> result =
       CopyFixedArrayUpTo(array, array->length(), AllocationType::kOld);
 
@@ -2120,6 +2122,7 @@ Handle<Code> Factory::CopyCode(Handle<Code> code) {
 #endif
   DCHECK(IsAligned(new_code->address(), kCodeAlignment));
   DCHECK_IMPLIES(
+      !V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
       !heap->memory_allocator()->code_range().is_empty(),
       heap->memory_allocator()->code_range().contains(new_code->address()));
   return new_code;

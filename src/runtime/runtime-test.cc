@@ -668,6 +668,7 @@ RUNTIME_FUNCTION(Runtime_NotifyContextDisposed) {
 
 
 RUNTIME_FUNCTION(Runtime_SetAllocationTimeout) {
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   SealHandleScope shs(isolate);
   DCHECK(args.length() == 2 || args.length() == 3);
 #ifdef V8_ENABLE_ALLOCATION_TIMEOUT
@@ -686,6 +687,7 @@ RUNTIME_FUNCTION(Runtime_SetAllocationTimeout) {
       isolate->heap()->DisableInlineAllocation();
     }
   }
+#endif
 #endif
   return ReadOnlyRoots(isolate).undefined_value();
 }

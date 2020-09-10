@@ -644,7 +644,7 @@ void Heap::CreateInitialObjects() {
   set_single_character_string_cache(*factory->NewFixedArray(
       String::kMaxOneByteCharCode + 1, AllocationType::kOld));
 
-  // Allocate initial string table.
+  // Allocate initial string table. 
   set_string_table(*StringTable::New(isolate(), kInitialStringTableSize));
 
   for (unsigned i = 0; i < arraysize(constant_string_table); i++) {

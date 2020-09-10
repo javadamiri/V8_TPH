@@ -393,7 +393,8 @@ void MutableBigInt::Canonicalize(MutableBigInt result) {
     int size_delta = to_trim * MutableBigInt::kDigitSize;
     Address new_end = result.address() + BigInt::SizeFor(new_length);
     Heap* heap = result.GetHeap();
-    if (!heap->IsLargeObject(result)) {
+    if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
+        !heap->IsLargeObject(result)) {
       // We do not create a filler for objects in large object space.
       // TODO(hpayer): We should shrink the large object page if the size
       // of the object changed significantly.

@@ -210,7 +210,7 @@ class EXPORT_TEMPLATE_DECLARE(V8_EXPORT_PRIVATE) HashTable
 
   // Find the entry at which to insert element with the given key that
   // has the given hash value.
-  InternalIndex FindInsertionEntry(uint32_t hash);
+  InternalIndex FindInsertionEntry(uint32_t hash, Isolate* isolate=nullptr);
 
   // Attempt to shrink hash table after removal of key.
   V8_WARN_UNUSED_RESULT static Handle<Derived> Shrink(

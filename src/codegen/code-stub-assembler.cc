@@ -10147,6 +10147,7 @@ void CodeStubAssembler::TransitionElementsKind(TNode<JSObject> object,
 
 void CodeStubAssembler::TrapAllocationMemento(TNode<JSObject> object,
                                               Label* memento_found) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   Comment("[ TrapAllocationMemento");
   Label no_memento_found(this);
   Label top_check(this), map_check(this);

@@ -1193,6 +1193,7 @@ HeapObjectData::HeapObjectData(JSHeapBroker* broker, ObjectData** storage,
 
 InstanceType HeapObjectData::GetMapInstanceType() const {
   ObjectData* map_data = map();
+  // TODO(Javad): not sure I made the right choice here
   if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
       map_data->should_access_heap()) {
     AllowHandleDereferenceIf allow_handle_dereference(kind());
@@ -2216,7 +2217,7 @@ void JSObjectData::SerializeRecursiveAsBoilerplate(JSHeapBroker* broker,
       elements_object->map() == ReadOnlyRoots(isolate).fixed_cow_array_map();
   if (empty_or_cow) {
     // We need to make sure copy-on-write elements are tenured.
-    if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
+    if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
         ObjectInYoungGeneration(*elements_object)) {
       elements_object = isolate->factory()->CopyAndTenureFixedCOWArray(
           Handle<FixedArray>::cast(elements_object));
@@ -3294,7 +3295,8 @@ Handle<Object> JSHeapBroker::GetRootHandle(Object object) {
 
 #define IF_ACCESS_FROM_HEAP_C(holder, name)                              \
   if (data_->should_access_heap()) {                                     \
-    CHECK(broker()->mode() == JSHeapBroker::kDisabled ||                 \
+    CHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||                             \
+          broker()->mode() == JSHeapBroker::kDisabled ||                 \
           ReadOnlyHeap::Contains(HeapObject::cast(*object())));          \
     AllowHandleAllocationIf handle_allocation(data_->kind(),             \
                                               broker()->mode());         \

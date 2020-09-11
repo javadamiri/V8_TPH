@@ -120,9 +120,8 @@ void StartupSerializer::SerializeObject(HeapObject obj) {
 
   // Object has not yet been serialized.  Serialize it here.
   // TODO(Javad): TPH doesnot support ReadOnlyHeap yet
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
-  DCHECK(!ReadOnlyHeap::Contains(obj));
-#endif
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !ReadOnlyHeap::Contains(obj));
+
   ObjectSerializer object_serializer(this, obj, &sink_);
   object_serializer.Serialize();
 }

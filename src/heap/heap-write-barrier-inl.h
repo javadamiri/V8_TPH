@@ -68,7 +68,7 @@ struct MemoryChunk {
   V8_INLINE bool IsMarking() const { return GetFlags() & kMarkingBit; }
 
   V8_INLINE bool InYoungGeneration() const {
-    if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
+    DCHECK(!V8_ENABLE_THIRD_PARTY_HEAP_BOOL);
     constexpr uintptr_t kYoungGenerationMask = kFromPageBit | kToPageBit;
     return GetFlags() & kYoungGenerationMask;
   }

@@ -384,7 +384,9 @@ bool Heap::InYoungGeneration(MaybeObject object) {
 
 // static
 bool Heap::InYoungGeneration(HeapObject heap_object) {
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false; // UNREACHABLE();
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) 
+    return false; 
+    // UNREACHABLE();
   bool result = MemoryChunk::FromHeapObject(heap_object)->InYoungGeneration();
 #ifdef DEBUG
   // If in the young generation, then check we're either not in the middle of

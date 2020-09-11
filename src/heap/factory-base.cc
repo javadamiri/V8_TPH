@@ -100,10 +100,8 @@ Handle<FixedArray> FactoryBase<Impl>::NewFixedArrayWithFiller(
     AllocationType allocation) {
   HeapObject result = AllocateRawFixedArray(length, allocation);
   // TODO(Javad): remove once TPH supports ReadOnlyHeap
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
-  DCHECK(ReadOnlyHeap::Contains(*map));
-  DCHECK(ReadOnlyHeap::Contains(*filler));
-#endif
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || ReadOnlyHeap::Contains(*map));
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || ReadOnlyHeap::Contains(*filler));
   result.set_map_after_allocation(*map, SKIP_WRITE_BARRIER);
   Handle<FixedArray> array = handle(FixedArray::cast(result), isolate());
   array->set_length(length);
@@ -134,9 +132,7 @@ Handle<WeakFixedArray> FactoryBase<Impl>::NewWeakFixedArrayWithMap(
   // Zero-length case must be handled outside.
   DCHECK_LT(0, length);
   // TODO(Javad): remove this once TPH supports ReadOnlyHeap
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
-  DCHECK(ReadOnlyHeap::Contains(map));
-#endif
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || ReadOnlyHeap::Contains(map));
 
   HeapObject result =
       AllocateRawArray(WeakFixedArray::SizeFor(length), allocation);
@@ -765,9 +761,7 @@ HeapObject FactoryBase<Impl>::AllocateRawWithImmortalMap(
   // from MAP_SPACE here, like external_map or message_object_map, but currently
   // noone does so this check is sufficient.
   // TODO(Javad): remove this once TPH supports ReadOnlyHeap
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
-  DCHECK(ReadOnlyHeap::Contains(map));
-#endif
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || ReadOnlyHeap::Contains(map));
   HeapObject result = AllocateRaw(size, allocation, alignment);
   result.set_map_after_allocation(map, SKIP_WRITE_BARRIER);
   return result;

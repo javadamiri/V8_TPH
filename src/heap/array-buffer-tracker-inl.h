@@ -23,15 +23,15 @@ namespace internal {
 void ArrayBufferTracker::RegisterNew(
     Heap* heap, JSArrayBuffer buffer,
     std::shared_ptr<BackingStore> backing_store) {
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   if (!backing_store) return;
   // If {buffer_start} is {nullptr}, we don't have to track and free it.
   if (!backing_store->buffer_start()) return;
 
   // ArrayBuffer tracking works only for small objects.
-  DCHECK(!heap->IsLargeObject(buffer));
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !heap->IsLargeObject(buffer));
   DCHECK_EQ(backing_store->buffer_start(), buffer.backing_store());
 
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   Page* page = Page::FromHeapObject(buffer);
   {
     base::MutexGuard guard(page->mutex());
@@ -46,6 +46,7 @@ void ArrayBufferTracker::RegisterNew(
              backing_store->byte_length(), backing_store.use_count());
     tracker->Add(buffer, std::move(backing_store));
   }
+#endif
 
   // TODO(wez): Remove backing-store from external memory accounting.
   // We may go over the limit of externally allocated memory here. We call the

@@ -6735,10 +6735,10 @@ Handle<Derived> HashTable<Derived, Shape>::EnsureCapacity(
   int new_nof = table->NumberOfElements() + n;
 
   const int kMinCapacityForPretenure = 256;
-  bool should_pretenure = allocation == AllocationType::kOld ||
-                          ((capacity > kMinCapacityForPretenure) &&
-                            (V8_ENABLE_THIRD_PARTY_HEAP_BOOL || 
-                             !Heap::InYoungGeneration(*table)));
+  bool should_pretenure = V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+                          (allocation == AllocationType::kOld ||
+                           ((capacity > kMinCapacityForPretenure) &&
+                            !Heap::InYoungGeneration(*table)));
   Handle<Derived> new_table = HashTable::New(
       isolate, new_nof,
       should_pretenure ? AllocationType::kOld : AllocationType::kYoung);
@@ -6783,8 +6783,8 @@ Handle<Derived> HashTable<Derived, Shape>::Shrink(Isolate* isolate,
   if (new_capacity == capacity) return table;
 
   const int kMinCapacityForPretenure = 256;
-  bool pretenure = (at_least_room_for > kMinCapacityForPretenure) &&
-                    (V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+  bool pretenure = V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+                    ((at_least_room_for > kMinCapacityForPretenure) &&
                      !Heap::InYoungGeneration(*table));
   Handle<Derived> new_table =
       HashTable::New(isolate, new_capacity,
@@ -6804,12 +6804,12 @@ InternalIndex HashTable<Derived, Shape>::FindInsertionEntry(
   InternalIndex entry = FirstProbe(hash, capacity);
   uint32_t count = 1;
   // EnsureCapacity will guarantee the hash table is never full.
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
+// #ifndef V8_ENABLE_THIRD_PARTY_HEAP
   ReadOnlyRoots roots = GetReadOnlyRoots();
-#else
-  ReadOnlyRoots roots = isolate == nullptr? GetReadOnlyRoots() :
-                                            GetReadOnlyRoots(isolate);
-#endif
+// #else
+//   ReadOnlyRoots roots = isolate == nullptr? GetReadOnlyRoots() :
+//                                             GetReadOnlyRoots(isolate);
+// #endif
 
   while (true) {
     if (!Shape::IsLive(roots, KeyAt(entry))) break;
@@ -6903,9 +6903,7 @@ Handle<String> StringTable::AddKeyNoResize(Isolate* isolate,
 
   // TODO(Javad): Temporary solutoion?
   // Add the new string and return it along with the string table.
-  InternalIndex entry = V8_ENABLE_THIRD_PARTY_HEAP_BOOL ?
-                          table->FindInsertionEntry(key->hash(), isolate):
-                          table->FindInsertionEntry(key->hash());
+  InternalIndex entry = table->FindInsertionEntry(key->hash());
   table->set(EntryToIndex(entry), *string);
   table->ElementAdded();
 

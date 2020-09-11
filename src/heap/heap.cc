@@ -2944,7 +2944,6 @@ void Heap::FlushNumberStringCache() {
 HeapObject Heap::CreateFillerObjectAt(Address addr, int size,
                                       ClearRecordedSlots clear_slots_mode,
                                       ClearFreedMemoryMode clear_memory_mode) {
-  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL || size == 0) return HeapObject();
   if (size == 0) return HeapObject();
   HeapObject filler = HeapObject::FromAddress(addr);
   bool clear_memory =
@@ -3216,8 +3215,6 @@ void Heap::RightTrimWeakFixedArray(WeakFixedArray object,
 template <typename T>
 void Heap::CreateFillerForArray(T object, int elements_to_trim,
                                 int bytes_to_trim) {
-  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
-  
   DCHECK(object.IsFixedArrayBase() || object.IsByteArray() ||
          object.IsWeakFixedArray());
 
@@ -3250,7 +3247,7 @@ void Heap::CreateFillerForArray(T object, int elements_to_trim,
   // we still do it.
   // We do not create a filler for objects in a large object space.
   // TODO(Javad): this is a very tempory fix
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
       !IsLargeObject(object)) {
     HeapObject filler = CreateFillerObjectAt(
         new_end, bytes_to_trim,
@@ -3258,8 +3255,7 @@ void Heap::CreateFillerForArray(T object, int elements_to_trim,
     DCHECK(!filler.is_null());
     // Clear the mark bits of the black area that belongs now to the filler.
     // This is an optimization. The sweeper will release black fillers anyway.
-    if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
-         incremental_marking()->black_allocation() &&
+    if (incremental_marking()->black_allocation() &&
          incremental_marking()->marking_state()->IsBlackOrGrey(filler)) {
       Page* page = Page::FromAddress(new_end);
       incremental_marking()->marking_state()->bitmap(page)->ClearRange(
@@ -5075,9 +5071,7 @@ HeapObject Heap::EnsureImmovableCode(HeapObject heap_object, int object_size) {
   // in the first page of code space, in large object space, or (during
   // snapshot creation) the containing page is marked as immovable.
   DCHECK(!heap_object.is_null());
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
-  DCHECK(code_space_->Contains(heap_object));
-#endif
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || code_space_->Contains(heap_object));
   DCHECK_GE(object_size, 0);
   if (!Heap::IsImmovable(heap_object)) {
     if (isolate()->serializer_enabled() ||

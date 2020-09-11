@@ -457,8 +457,7 @@ Reduction MemoryLowering::ReduceAllocateRaw(Node* node) {
 WriteBarrierKind MemoryLowering::ComputeWriteBarrierKind(
     Node* node, Node* object, Node* value, AllocationState const* state,
     WriteBarrierKind write_barrier_kind) {
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
-    return kNoWriteBarrier;
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return kNoWriteBarrier;
 
   if (state && state->IsYoungGenerationAllocation() &&
       state->group()->Contains(object)) {

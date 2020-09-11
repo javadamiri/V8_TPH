@@ -1646,9 +1646,6 @@ void Shell::WorkerNew(const v8::FunctionCallbackInfo<v8::Value>& args) {
       Throw(args.GetIsolate(), "Can't start thread");
       return;
     }
-    // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
-    //   isolate->heap()->tp_heap()->
-    // }
   }
 }
 
@@ -3102,10 +3099,7 @@ int Shell::RunMain(Isolate* isolate, int argc, char* argv[], bool last_run) {
 
 void Shell::CollectGarbage(Isolate* isolate) {
   // TODO(Javad): this needs to be fixed when TPH supports GC
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
-  {
-    return;
-  }
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   
   if (options.send_idle_notification) {
     const double kLongIdlePauseInSeconds = 1.0;

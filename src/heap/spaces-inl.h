@@ -165,7 +165,7 @@ bool NewSpace::FromSpaceContains(Object o) { return from_space_.Contains(o); }
 
 bool PagedSpace::Contains(Address addr) {
   if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
-    return true;
+    return false;
   }
   return Page::FromAddress(addr)->owner() == this;
 }

@@ -496,9 +496,9 @@ TSlot Deserializer::ReadRepeatedObject(TSlot current, int repeat_count) {
   CHECK_LE(2, repeat_count);
 
   HeapObject heap_object = ReadObject();
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
-  DCHECK(!Heap::InYoungGeneration(heap_object));
-#endif
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+         !Heap::InYoungGeneration(heap_object));
+
   for (int i = 0; i < repeat_count; i++) {
     // Repeated values are not subject to the write barrier so we don't need
     // to trigger it.

@@ -38,7 +38,7 @@ V8_INLINE Heap* GetHeapFromWritableObject(HeapObject object) {
   heap_internals::MemoryChunk* chunk =
       heap_internals::MemoryChunk::FromHeapObject(object);
   return chunk->GetHeap();
-#endif  // V8_COMPRESS_POINTERS || V8_ENABLE_THIRD_PARTY_HEAP
+#endif  // V8_COMPRESS_POINTERS
 }
 
 V8_INLINE Isolate* GetIsolateFromWritableObject(HeapObject object) {
@@ -53,7 +53,7 @@ V8_INLINE Isolate* GetIsolateFromWritableObject(HeapObject object) {
   return isolate;
 #else
   return Isolate::FromHeap(GetHeapFromWritableObject(object));
-#endif  // V8_COMPRESS_POINTERS, V8_ENABLE_THIRD_PARTY_HEAP
+#endif  // V8_COMPRESS_POINTERS
 }
 
 V8_INLINE bool GetIsolateFromHeapObject(HeapObject object, Isolate** isolate) {
@@ -72,7 +72,7 @@ V8_INLINE bool GetIsolateFromHeapObject(HeapObject object, Isolate** isolate) {
   }
   *isolate = Isolate::FromHeap(chunk->GetHeap());
   return true;
-#endif  // V8_COMPRESS_POINTERS, V8_ENABLE_THIRD_PARTY_HEAP
+#endif  // V8_COMPRESS_POINTERS
 }
 
 }  // namespace internal

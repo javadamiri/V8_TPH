@@ -200,8 +200,7 @@ void Serializer::PutRoot(RootIndex root, HeapObject object) {
 
   // TODO(ulan): Check that it works with young large objects.
   if (root_index < kNumberOfRootArrayConstants &&
-      (V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
-       !Heap::InYoungGeneration(object))) {
+      (V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !Heap::InYoungGeneration(object))) {
     sink_.Put(kRootArrayConstants + root_index, "RootConstant");
   } else {
     sink_.Put(kRootArray, "RootSerialization");

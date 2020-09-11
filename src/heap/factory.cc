@@ -1416,9 +1416,7 @@ Map Factory::InitializeMap(Map map, InstanceType type, int instance_size,
   map.set_instance_size(instance_size);
   if (map.IsJSObjectMap()) {
     // TODO(Javad): remove ifndef when we support ro_heap_mmtk
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
-    DCHECK(!ReadOnlyHeap::Contains(map));
-#endif
+    DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !ReadOnlyHeap::Contains(map));
     map.SetInObjectPropertiesStartInWords(instance_size / kTaggedSize -
                                           inobject_properties);
     DCHECK_EQ(map.GetInObjectProperties(), inobject_properties);
@@ -1484,9 +1482,8 @@ Handle<JSObject> Factory::CopyJSObjectWithAllocationSite(
   HeapObject raw_clone = isolate()->heap()->AllocateRawWith<Heap::kRetryOrFail>(
       adjusted_object_size, AllocationType::kYoung);
 
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
-  DCHECK(Heap::InYoungGeneration(raw_clone) || FLAG_single_generation);
-#endif
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+          Heap::InYoungGeneration(raw_clone) || FLAG_single_generation);
 
   // Since we know the clone is allocated in new space, we can copy
   // the contents without worrying about updating the write barrier.
@@ -1703,9 +1700,7 @@ Handle<FixedArray> Factory::CopyFixedArray(Handle<FixedArray> array) {
 
 Handle<FixedArray> Factory::CopyAndTenureFixedCOWArray(
     Handle<FixedArray> array) {
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
-  DCHECK(Heap::InYoungGeneration(*array));
-#endif
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || Heap::InYoungGeneration(*array));
   Handle<FixedArray> result =
       CopyFixedArrayUpTo(array, array->length(), AllocationType::kOld);
 

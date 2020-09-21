@@ -27,10 +27,8 @@ ReadOnlySerializer::~ReadOnlySerializer() {
 }
 
 void ReadOnlySerializer::SerializeObject(HeapObject obj) {
-  // TODO(Javad): remove once TPH supports ReadOnlyHeap
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
-  CHECK(ReadOnlyHeap::Contains(obj));
-#endif
+  CHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || ReadOnlyHeap::Contains(obj));
+  
   CHECK_IMPLIES(obj.IsString(), obj.IsInternalizedString());
 
   if (SerializeHotObject(obj)) return;
@@ -97,7 +95,7 @@ bool ReadOnlySerializer::MustBeDeferred(HeapObject object) {
 
 bool ReadOnlySerializer::SerializeUsingReadOnlyObjectCache(
     SnapshotByteSink* sink, HeapObject obj) {
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !ReadOnlyHeap::Contains(obj)) 
+  if (!ReadOnlyHeap::Contains(obj)) 
     return false;
 
   // Get the cache index and serialize it into the read-only snapshot if

@@ -26,10 +26,7 @@ class Heap {
                             AllocationAlignment align);
 
   Address GetObjectFromInnerPointer(Address inner_pointer);
-  // TODO(Javad): this is to temporarily solve the problem with 
-  //  finding the isolate of filler objects
-  void ArchiveAddress(Address address);
-
+  
   const base::AddressRegion& GetCodeRange();
 
   static bool InCodeSpace(Address address);

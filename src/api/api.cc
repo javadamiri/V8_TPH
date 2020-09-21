@@ -772,7 +772,6 @@ StartupData SnapshotCreator::CreateBlob(
   // context even after we have disposed of the context.
 
 #ifndef V8_ENABLE_THIRD_PARTY_HEAP
-  // TODO(Javad): this depends on GC which is not supported by TPH yet
   isolate->heap()->CollectAllAvailableGarbage(
       i::GarbageCollectionReason::kSnapshotCreator);
 #endif
@@ -8066,7 +8065,6 @@ void BigInt::ToWordsArray(int* sign_bit, int* word_count,
 }
 
 void Isolate::ReportExternalAllocationLimitReached() {
-  // TODO(Javad): not sure I'm doing the thing here
   if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   i::Heap* heap = reinterpret_cast<i::Isolate*>(this)->heap();
   if (heap->gc_state() != i::Heap::NOT_IN_GC) return;

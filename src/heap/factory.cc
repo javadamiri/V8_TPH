@@ -795,7 +795,7 @@ MaybeHandle<Map> Factory::InternalizedStringMapForString(
     Handle<String> string) {
   // If the string is in the young generation, it cannot be used as
   // internalized.
-  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && Heap::InYoungGeneration(*string)) 
+  if (Heap::InYoungGeneration(*string)) 
     return MaybeHandle<Map>();
 
   return GetInternalizedStringMap(this, string);
@@ -1415,7 +1415,6 @@ Map Factory::InitializeMap(Map map, InstanceType type, int instance_size,
   map.set_constructor_or_backpointer(*null_value(), SKIP_WRITE_BARRIER);
   map.set_instance_size(instance_size);
   if (map.IsJSObjectMap()) {
-    // TODO(Javad): remove ifndef when we support ro_heap_mmtk
     DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !ReadOnlyHeap::Contains(map));
     map.SetInObjectPropertiesStartInWords(instance_size / kTaggedSize -
                                           inobject_properties);

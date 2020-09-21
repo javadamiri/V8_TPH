@@ -2216,8 +2216,7 @@ void JSObjectData::SerializeRecursiveAsBoilerplate(JSHeapBroker* broker,
       elements_object->map() == ReadOnlyRoots(isolate).fixed_cow_array_map();
   if (empty_or_cow) {
     // We need to make sure copy-on-write elements are tenured.
-    if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
-        ObjectInYoungGeneration(*elements_object)) {
+    if (ObjectInYoungGeneration(*elements_object)) {
       elements_object = isolate->factory()->CopyAndTenureFixedCOWArray(
           Handle<FixedArray>::cast(elements_object));
       boilerplate->set_elements(*elements_object);
@@ -2658,7 +2657,7 @@ ObjectData* JSHeapBroker::GetOrCreateData(Handle<Object> object) {
     if (object->IsSmi()) {
       new (zone()) ObjectData(this, data_storage, object, kSmi);
     } else if (!SerializingAllowed() || 
-                (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && IsReadOnlyHeapObject(*object))) {
+               (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && IsReadOnlyHeapObject(*object))) {
       new (zone()) ObjectData(this, data_storage, object,
                               kUnserializedReadOnlyHeapObject);
 #define CREATE_DATA_IF_MATCH(name)                                             \

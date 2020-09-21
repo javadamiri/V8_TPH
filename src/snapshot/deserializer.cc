@@ -496,8 +496,7 @@ TSlot Deserializer::ReadRepeatedObject(TSlot current, int repeat_count) {
   CHECK_LE(2, repeat_count);
 
   HeapObject heap_object = ReadObject();
-  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
-         !Heap::InYoungGeneration(heap_object));
+  DCHECK(!Heap::InYoungGeneration(heap_object));
 
   for (int i = 0; i < repeat_count; i++) {
     // Repeated values are not subject to the write barrier so we don't need
@@ -725,8 +724,7 @@ bool Deserializer::ReadData(TSlot current, TSlot limit,
         int id = data & kRootArrayConstantsMask;
         RootIndex root_index = static_cast<RootIndex>(id);
         MaybeObject object = MaybeObject::FromObject(isolate->root(root_index));
-        DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
-               !Heap::InYoungGeneration(object));
+        DCHECK(!Heap::InYoungGeneration(object));
         current = Write(current, object);
         break;
       }
@@ -820,8 +818,7 @@ TSlot Deserializer::ReadDataCase(Isolate* isolate, TSlot current,
     int id = source_.GetInt();
     RootIndex root_index = static_cast<RootIndex>(id);
     heap_object = HeapObject::cast(isolate->root(root_index));
-    emit_write_barrier = !V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
-                          Heap::InYoungGeneration(heap_object);
+    emit_write_barrier = Heap::InYoungGeneration(heap_object);
     hot_objects_.Add(heap_object);
   } else if (bytecode == kReadOnlyObjectCache) {
     int cache_index = source_.GetInt();
@@ -834,14 +831,12 @@ TSlot Deserializer::ReadDataCase(Isolate* isolate, TSlot current,
     int cache_index = source_.GetInt();
     heap_object =
         HeapObject::cast(isolate->partial_snapshot_cache()->at(cache_index));
-    emit_write_barrier = !V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
-                          Heap::InYoungGeneration(heap_object);
+    emit_write_barrier = Heap::InYoungGeneration(heap_object);
   } else {
     DCHECK_EQ(bytecode, kAttachedReference);
     int index = source_.GetInt();
     heap_object = *attached_objects_[index];
-    emit_write_barrier = !V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
-                          Heap::InYoungGeneration(heap_object);
+    emit_write_barrier = Heap::InYoungGeneration(heap_object);
   }
   HeapObjectReference heap_object_ref =
       reference_type == HeapObjectReferenceType::STRONG

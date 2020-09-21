@@ -20,9 +20,7 @@ bool InstructionStream::PcIsOffHeap(Isolate* isolate, Address pc) {
 
 // static
 Code InstructionStream::TryLookupCode(Isolate* isolate, Address address) {
-  // TODO(Javad): this should be straight-forward to fix
-  if (!PcIsOffHeap(isolate, address)) 
-          return Code();
+  if (!PcIsOffHeap(isolate, address)) return Code();
 
   EmbeddedData d = EmbeddedData::FromBlob();
   if (address < d.InstructionStartOfBuiltin(0)) return Code();

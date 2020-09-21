@@ -181,11 +181,9 @@ INT_ACCESSORS(Code, code_comments_offset, kCodeCommentsOffsetOffset)
 
 #define CODE_ACCESSORS(name, type, offset)           \
   ACCESSORS_CHECKED2(Code, name, type, offset, true, \
-                     V8_ENABLE_THIRD_PARTY_HEAP_BOOL || \
                      !ObjectInYoungGeneration(value))
 #define SYNCHRONIZED_CODE_ACCESSORS(name, type, offset)           \
   SYNCHRONIZED_ACCESSORS_CHECKED2(Code, name, type, offset, true, \
-                                  V8_ENABLE_THIRD_PARTY_HEAP_BOOL || \
                                   !ObjectInYoungGeneration(value))
 
 CODE_ACCESSORS(relocation_info, ByteArray, kRelocationInfoOffset)

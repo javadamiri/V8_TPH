@@ -384,9 +384,7 @@ bool Heap::InYoungGeneration(MaybeObject object) {
 
 // static
 bool Heap::InYoungGeneration(HeapObject heap_object) {
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) 
-    return false; 
-    // UNREACHABLE();
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
   bool result = MemoryChunk::FromHeapObject(heap_object)->InYoungGeneration();
 #ifdef DEBUG
   // If in the young generation, then check we're either not in the middle of
@@ -555,7 +553,7 @@ void Heap::ExternalStringTable::AddString(String string) {
   DCHECK(string.IsExternalString());
   DCHECK(!Contains(string));
 
-  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && InYoungGeneration(string)) {
+  if (InYoungGeneration(string)) {
     young_strings_.push_back(string);
   } else {
     old_strings_.push_back(string);

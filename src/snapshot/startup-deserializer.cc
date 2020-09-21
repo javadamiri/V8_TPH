@@ -41,7 +41,7 @@ void StartupDeserializer::DeserializeInto(Isolate* isolate) {
 
     // Flush the instruction cache for the entire code-space. Must happen after
     // builtins deserialization.
-  // TODO(Javad): not needed on x86-mp
+  // TODO(Javad): not needed on x86-mp?
 #ifndef V8_ENABLE_THIRD_PARTY_HEAP
     FlushICache();
 #endif

@@ -6796,21 +6796,12 @@ Handle<Derived> HashTable<Derived, Shape>::Shrink(Isolate* isolate,
 }
 
 template <typename Derived, typename Shape>
-InternalIndex HashTable<Derived, Shape>::FindInsertionEntry(
-      uint32_t hash,
-      Isolate* isolate
-  ) {
+InternalIndex HashTable<Derived, Shape>::FindInsertionEntry(uint32_t hash) {
   uint32_t capacity = Capacity();
   InternalIndex entry = FirstProbe(hash, capacity);
   uint32_t count = 1;
   // EnsureCapacity will guarantee the hash table is never full.
-// #ifndef V8_ENABLE_THIRD_PARTY_HEAP
   ReadOnlyRoots roots = GetReadOnlyRoots();
-// #else
-//   ReadOnlyRoots roots = isolate == nullptr? GetReadOnlyRoots() :
-//                                             GetReadOnlyRoots(isolate);
-// #endif
-
   while (true) {
     if (!Shape::IsLive(roots, KeyAt(entry))) break;
     entry = NextProbe(entry, count++, capacity);
@@ -6901,7 +6892,6 @@ Handle<String> StringTable::AddKeyNoResize(Isolate* isolate,
   DCHECK(string->HasHashCode());
   DCHECK(table->FindEntry(isolate, key).is_not_found());
 
-  // TODO(Javad): Temporary solutoion?
   // Add the new string and return it along with the string table.
   InternalIndex entry = table->FindInsertionEntry(key->hash());
   table->set(EntryToIndex(entry), *string);

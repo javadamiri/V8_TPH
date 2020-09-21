@@ -2986,7 +2986,6 @@ HeapObject Heap::CreateFillerObjectAt(Address addr, int size,
 }
 
 bool Heap::CanMoveObjectStart(HeapObject object) {
-  // TODO(Javad): ultimately this function should not be called when using TPH
   if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
   if (!FLAG_move_object_start) return false;
 
@@ -3246,7 +3245,6 @@ void Heap::CreateFillerForArray(T object, int elements_to_trim,
   // debug mode which iterates through the heap), but to play safer
   // we still do it.
   // We do not create a filler for objects in a large object space.
-  // TODO(Javad): this is a very tempory fix
   if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
       !IsLargeObject(object)) {
     HeapObject filler = CreateFillerObjectAt(
@@ -3256,7 +3254,7 @@ void Heap::CreateFillerForArray(T object, int elements_to_trim,
     // Clear the mark bits of the black area that belongs now to the filler.
     // This is an optimization. The sweeper will release black fillers anyway.
     if (incremental_marking()->black_allocation() &&
-         incremental_marking()->marking_state()->IsBlackOrGrey(filler)) {
+        incremental_marking()->marking_state()->IsBlackOrGrey(filler)) {
       Page* page = Page::FromAddress(new_end);
       incremental_marking()->marking_state()->bitmap(page)->ClearRange(
           page->AddressToMarkbitIndex(new_end),
@@ -3828,7 +3826,6 @@ void Heap::CollectGarbageOnMemoryPressure() {
 
 void Heap::MemoryPressureNotification(MemoryPressureLevel level,
                                       bool is_isolate_locked) {
-  // TODO(Javad): we may need to do something here when TPH supports GC
   if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   MemoryPressureLevel previous = memory_pressure_level_;
   memory_pressure_level_ = level;
@@ -5793,8 +5790,7 @@ void Heap::ClearRecordedSlotRange(Address start, Address end) {
 }
 
 PagedSpace* PagedSpaceIterator::Next() {
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
-    return nullptr;
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return nullptr;
   switch (counter_++) {
     case RO_SPACE:
     case NEW_SPACE:
@@ -5942,13 +5938,8 @@ class UnreachableObjectsFilter : public HeapObjectsFilter {
 };
 
 #ifdef V8_ENABLE_THIRD_PARTY_HEAP
-void Heap::ResetIterator() {
-  tp_heap_->ResetIterator();
-}
-
-HeapObject Heap::NextObject() {
-  return tp_heap_->NextObject();
-}
+void Heap::ResetIterator() {  tp_heap_->ResetIterator(); }
+HeapObject Heap::NextObject() { return tp_heap_->NextObject(); }
 #endif
 
 HeapObjectIterator::HeapObjectIterator(
@@ -6472,7 +6463,7 @@ Code Heap::GcSafeCastToCode(HeapObject object, Address inner_pointer) {
 
 bool Heap::GcSafeCodeContains(Code code, Address addr) {
   Map map = GcSafeMapOfCodeSpaceObject(code);
-  // DCHECK(map == ReadOnlyRoots(this).code_map());
+  DCHECK(map == ReadOnlyRoots(this).code_map());
   if (InstructionStream::TryLookupCode(isolate(), addr) == code) return true;
   Address start = code.address();
   Address end = code.address() + code.SizeFromMap(map);

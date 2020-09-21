@@ -173,14 +173,10 @@ ReadOnlyHeapObjectIterator::ReadOnlyHeapObjectIterator(ReadOnlySpace* ro_space)
                                                     : ro_space->first_page()),
       current_addr_(V8_ENABLE_THIRD_PARTY_HEAP_BOOL
                         ? Address()
-                        : current_page_->area_start()) {
-                          // TODO(Javad): We do not support object iteration yet
-                        }
+                        : current_page_->area_start()) {}
 
 HeapObject ReadOnlyHeapObjectIterator::Next() {
   if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
-    // TODO(Javad): We do not support object iteration yet
-    // DCHECK(!V8_ENABLE_THIRD_PARTY_HEAP_BOOL);
     return HeapObject();  // Unsupported
   }
 

@@ -49,7 +49,6 @@ V8_INLINE Address DecompressTaggedPointer(TOnHeapAddress on_heap_addr,
                                           Tagged_t raw_value) {
 #ifdef V8_ENABLE_THIRD_PARTY_HEAP
   return static_cast<Address>(raw_value);
-  // return GetIsolateRoot(on_heap_addr) + static_cast<Address>(raw_value);
 #else
   return GetIsolateRoot(on_heap_addr) + static_cast<Address>(raw_value);
 #endif

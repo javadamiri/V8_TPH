@@ -1296,16 +1296,10 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
   TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
         AllocateDoubleAlignFlag::encode(needs_double_alignment) |
         AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
-    // if (FLAG_young_generation_large_objects) {
-    //   result =
-    //       CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
-    //                   SmiTag(size_in_bytes), runtime_flags);
-    // } else {
-    result =
-          CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
+  result =
+        CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
                       SmiTag(size_in_bytes), runtime_flags);
-    // }
-    Goto(&out);
+  Goto(&out);
 #else  
   Label if_out_of_memory(this, Label::kDeferred);
 
@@ -1466,7 +1460,7 @@ TNode<HeapObject> CodeStubAssembler::AllocateInNewSpace(
 
 TNode<HeapObject> CodeStubAssembler::Allocate(TNode<IntPtrT> size_in_bytes,
                                               AllocationFlags flags) {
-  Comment("CodeStubAssembler::Allocate");
+  Comment("Allocate");
   bool const new_space = !(flags & kPretenured);
   bool const allow_large_objects = flags & kAllowLargeObjectAllocation;
   // For optimized allocations, we don't allow the allocation to happen in a
@@ -1491,8 +1485,8 @@ TNode<HeapObject> CodeStubAssembler::Allocate(TNode<IntPtrT> size_in_bytes,
 #ifndef V8_ENABLE_THIRD_PARTY_HEAP
   TNode<ExternalReference> top_address = ExternalConstant(
       new_space
-        ? ExternalReference::new_space_allocation_top_address(isolate())
-        : ExternalReference::old_space_allocation_top_address(isolate()));
+          ? ExternalReference::new_space_allocation_top_address(isolate())
+          : ExternalReference::old_space_allocation_top_address(isolate()));
   DCHECK_EQ(kSystemPointerSize,
             ExternalReference::new_space_allocation_limit_address(isolate())
                     .address() -

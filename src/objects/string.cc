@@ -43,7 +43,6 @@ Handle<String> String::SlowFlatten(Isolate* isolate, Handle<ConsString> cons,
   DCHECK(AllowHeapAllocation::IsAllowed());
   int length = cons->length();
   allocation =
-      !V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
       ObjectInYoungGeneration(*cons) ? allocation : AllocationType::kOld;
   Handle<SeqString> result;
   if (cons->IsOneByteRepresentation()) {
@@ -157,8 +156,7 @@ bool String::MakeExternal(v8::String::ExternalStringResource* resource) {
   if (size < ExternalString::kUncachedSize) return false;
   // Read-only strings cannot be made external, since that would mutate the
   // string.
-  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && IsReadOnlyHeapObject(*this)) 
-    return false;
+  if (IsReadOnlyHeapObject(*this)) return false;
   Isolate* isolate = GetIsolateFromWritableObject(*this);
   bool is_internalized = this->IsInternalizedString();
   bool has_pointers = StringShape(*this).IsIndirect();
@@ -229,8 +227,7 @@ bool String::MakeExternal(v8::String::ExternalOneByteStringResource* resource) {
   if (size < ExternalString::kUncachedSize) return false;
   // Read-only strings cannot be made external, since that would mutate the
   // string.
-  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && IsReadOnlyHeapObject(*this)) 
-    return false;
+  if (IsReadOnlyHeapObject(*this)) return false;
   Isolate* isolate = GetIsolateFromWritableObject(*this);
   bool is_internalized = this->IsInternalizedString();
   bool has_pointers = StringShape(*this).IsIndirect();
@@ -275,13 +272,12 @@ bool String::MakeExternal(v8::String::ExternalOneByteStringResource* resource) {
 }
 
 bool String::SupportsExternalization() {
-  // if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
   if (this->IsThinString()) {
     return i::ThinString::cast(*this).actual().SupportsExternalization();
   }
 
   // RO_SPACE strings cannot be externalized.
-  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && IsReadOnlyHeapObject(*this)) {
+  if (IsReadOnlyHeapObject(*this)) {
     return false;
   }
 

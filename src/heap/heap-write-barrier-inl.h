@@ -68,7 +68,7 @@ struct MemoryChunk {
   V8_INLINE bool IsMarking() const { return GetFlags() & kMarkingBit; }
 
   V8_INLINE bool InYoungGeneration() const {
-    DCHECK(!V8_ENABLE_THIRD_PARTY_HEAP_BOOL);
+    if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
     constexpr uintptr_t kYoungGenerationMask = kFromPageBit | kToPageBit;
     return GetFlags() & kYoungGenerationMask;
   }
@@ -250,7 +250,6 @@ inline void MarkingBarrierForDescriptorArray(Heap* heap, HeapObject host,
 
 inline WriteBarrierMode GetWriteBarrierModeForObject(
     HeapObject object, const DisallowHeapAllocation* promise) {
-  // TODO(Javad): no write barriers for TPH
 #ifdef V8_ENABLE_THIRD_PARTY_HEAP
   return SKIP_WRITE_BARRIER;
 #endif
@@ -267,6 +266,7 @@ inline WriteBarrierMode GetWriteBarrierModeForObject(
 inline bool ObjectInYoungGeneration(Object object) {
   // TODO(rong): Fix caller of this function when we deploy
   // v8_use_third_party_heap.
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
   if (FLAG_single_generation) return false;
   if (object.IsSmi()) return false;
   return heap_internals::MemoryChunk::FromHeapObject(HeapObject::cast(object))
@@ -274,6 +274,7 @@ inline bool ObjectInYoungGeneration(Object object) {
 }
 
 inline bool IsReadOnlyHeapObject(HeapObject object) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
   heap_internals::MemoryChunk* chunk =
       heap_internals::MemoryChunk::FromHeapObject(object);
   return chunk->InReadOnlySpace();

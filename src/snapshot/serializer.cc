@@ -200,7 +200,7 @@ void Serializer::PutRoot(RootIndex root, HeapObject object) {
 
   // TODO(ulan): Check that it works with young large objects.
   if (root_index < kNumberOfRootArrayConstants &&
-      (V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !Heap::InYoungGeneration(object))) {
+      !Heap::InYoungGeneration(object)) {
     sink_.Put(kRootArrayConstants + root_index, "RootConstant");
   } else {
     sink_.Put(kRootArray, "RootSerialization");
@@ -531,8 +531,7 @@ void Serializer::ObjectSerializer::Serialize() {
     SerializeExternalString();
     return;
     // TODO(Javad): TPH doesnt support ReadOnlyHeap, so I assume no object is there
-  } else if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL || 
-              !ReadOnlyHeap::Contains(object_)) {
+  } else if (!ReadOnlyHeap::Contains(object_)) {
     // Only clear padding for strings outside the read-only heap. Read-only heap
     // should have been cleared elsewhere.
     if (object_.IsSeqOneByteString()) {
@@ -702,9 +701,9 @@ void Serializer::ObjectSerializer::VisitPointers(HeapObject host,
           RootsTable::IsImmortalImmovable(root_index) &&
           *current == *repeat_end) {
         DCHECK_EQ(reference_type, HeapObjectReferenceType::STRONG);
-#ifndef V8_ENABLE_THIRD_PARTY_HEAP
+
         DCHECK(!Heap::InYoungGeneration(current_contents));
-#endif
+
         while (repeat_end < end && *repeat_end == *current) {
           repeat_end++;
         }

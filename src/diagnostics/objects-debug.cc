@@ -429,7 +429,7 @@ void JSObject::JSObjectVerify(Isolate* isolate) {
 void Map::MapVerify(Isolate* isolate) {
   TorqueGeneratedClassVerifiers::MapVerify(*this, isolate);
   Heap* heap = isolate->heap();
-  CHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !ObjectInYoungGeneration(*this));
+  CHECK(!ObjectInYoungGeneration(*this));
   CHECK(FIRST_TYPE <= instance_type() && instance_type() <= LAST_TYPE);
   CHECK(instance_size() == kVariableSizeSentinel ||
         (kTaggedSize <= instance_size() &&
@@ -759,7 +759,7 @@ void String::StringVerify(Isolate* isolate) {
   TorqueGeneratedClassVerifiers::StringVerify(*this, isolate);
   CHECK(length() >= 0 && length() <= Smi::kMaxValue);
   CHECK_IMPLIES(length() == 0, *this == ReadOnlyRoots(isolate).empty_string());
-  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && IsInternalizedString()) {
+  if (IsInternalizedString()) {
     CHECK(!ObjectInYoungGeneration(*this));
   }
 }

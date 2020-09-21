@@ -104,7 +104,7 @@ void HeapObject::PrintHeader(std::ostream& os, const char* id) {  // NOLINT
     os << map().instance_type();
   }
   os << "]";
-  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && ReadOnlyHeap::Contains(*this)) {
+  if (ReadOnlyHeap::Contains(*this)) {
     os << " in ReadOnlySpace";
   } else if (GetHeapFromWritableObject(*this)->InOldSpace(*this)) {
     os << " in OldSpace";
@@ -2450,7 +2450,7 @@ void Map::MapPrint(std::ostream& os) {  // NOLINT
 
   // Read-only maps can't have transitions, which is fortunate because we need
   // the isolate to iterate over the transitions.
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !IsReadOnlyHeapObject(*this)) {
+  if (!IsReadOnlyHeapObject(*this)) {
     Isolate* isolate = GetIsolateFromWritableObject(*this);
     DisallowHeapAllocation no_gc;
     TransitionsAccessor transitions(isolate, *this, &no_gc);

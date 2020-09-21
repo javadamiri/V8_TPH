@@ -1436,7 +1436,7 @@ bool Compiler::Compile(Handle<SharedFunctionInfo> shared_info,
 
   Isolate* isolate = shared_info->GetIsolate();
   DCHECK(AllowCompilation::IsAllowed(isolate));
-  // TODO(Javad): we do not support multi heap instances yet?
+  // TODO(Javad): we do not support multi heap instances yet
 #ifndef V8_ENABLE_THIRD_PARTY_HEAP
   DCHECK_EQ(ThreadId::Current(), isolate->thread_id());
 #endif

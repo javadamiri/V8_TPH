@@ -80,7 +80,7 @@ void TaggedField<T, kFieldOffset>::store(HeapObject host, T value) {
 // static
 template <typename T, int kFieldOffset>
 void TaggedField<T, kFieldOffset>::store(HeapObject host, int offset, T value) {
-#if defined(V8_CONCURRENT_MARKING) //&& !defined(V8_ENABLE_THIRD_PARTY_HEAP)
+#if defined(V8_CONCURRENT_MARKING)
   Relaxed_Store(host, offset, value);
 #else
   *location(host, offset) = full_to_tagged(value.ptr());

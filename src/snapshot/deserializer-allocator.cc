@@ -72,9 +72,7 @@ Address DeserializerAllocator::Allocate(SnapshotSpace space, int size) {
   // abstracting away the details of the memory allocator from this code.
   // At each allocation, the regular allocator performs allocation,
   // and a fixed-sized table is used to track and fix all back references.
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL){
-    return AllocateRaw(space, size);
-  }
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return AllocateRaw(space, size);
 
   if (next_alignment_ != kWordAligned) {
     const int reserved = size + Heap::GetMaximumFillToAlign(next_alignment_);

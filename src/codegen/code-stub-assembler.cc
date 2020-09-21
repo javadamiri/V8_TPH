@@ -1296,15 +1296,15 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
   TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
         AllocateDoubleAlignFlag::encode(needs_double_alignment) |
         AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
-    if (FLAG_young_generation_large_objects) {
-      result =
-          CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
-                      SmiTag(size_in_bytes), runtime_flags);
-    } else {
-      result =
+    // if (FLAG_young_generation_large_objects) {
+    //   result =
+    //       CallRuntime(Runtime::kAllocateInYoungGeneration, NoContextConstant(),
+    //                   SmiTag(size_in_bytes), runtime_flags);
+    // } else {
+    result =
           CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
                       SmiTag(size_in_bytes), runtime_flags);
-    }
+    // }
     Goto(&out);
 #else  
   Label if_out_of_memory(this, Label::kDeferred);

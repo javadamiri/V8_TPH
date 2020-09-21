@@ -407,6 +407,10 @@ TF_BUILTIN(RecordWrite, RecordWriteCodeStubAssembler) {
   Label incremental_wb(this);
   Label exit(this);
 
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP
+      Goto(&exit);
+#else
+
   TNode<Smi> remembered_set =
       UncheckedCast<Smi>(Parameter(Descriptor::kRememberedSet));
   Branch(ShouldEmitRememberSet(remembered_set), &generational_wb,
@@ -416,7 +420,7 @@ TF_BUILTIN(RecordWrite, RecordWriteCodeStubAssembler) {
   {
     Label test_old_to_young_flags(this);
     Label store_buffer_exit(this), store_buffer_incremental_wb(this);
-
+    
     // When incremental marking is not on, we skip cross generation pointer
     // checking here, because there are checks for
     // `kPointersFromHereAreInterestingMask` and
@@ -498,7 +502,7 @@ TF_BUILTIN(RecordWrite, RecordWriteCodeStubAssembler) {
           function, object, slot, isolate_constant, fp_mode, &exit);
     }
   }
-
+#endif
   BIND(&exit);
   IncrementCounter(isolate()->counters()->write_barriers(), 1);
   Return(TrueConstant());

@@ -1749,7 +1749,7 @@ void EternalHandles::Create(Isolate* isolate, Object object, int* index) {
   }
   DCHECK_EQ(the_hole.ptr(), blocks_[block][offset]);
   blocks_[block][offset] = object.ptr();
-  if (ObjectInYoungGeneration(object)) {
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && ObjectInYoungGeneration(object)) {
     young_node_indices_.push_back(size_);
   }
   *index = size_++;

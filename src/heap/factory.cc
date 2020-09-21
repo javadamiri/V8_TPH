@@ -2281,9 +2281,9 @@ Handle<JSObject> Factory::NewJSObjectFromMap(
 
   InitializeJSObjectFromMap(js_obj, empty_fixed_array(), map);
 
-  // DCHECK(js_obj->HasFastElements() || js_obj->HasTypedArrayElements() ||
-  //        js_obj->HasFastStringWrapperElements() ||
-  //        js_obj->HasFastArgumentsElements() || js_obj->HasDictionaryElements());
+  DCHECK(js_obj->HasFastElements() || js_obj->HasTypedArrayElements() ||
+         js_obj->HasFastStringWrapperElements() ||
+         js_obj->HasFastArgumentsElements() || js_obj->HasDictionaryElements());
   return js_obj;
 }
 

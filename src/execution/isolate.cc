@@ -3388,7 +3388,8 @@ bool Isolate::Init(ReadOnlyDeserializer* read_only_deserializer,
   DCHECK(!heap_.HasBeenSetUp());
   heap_.SetUp();
   ReadOnlyHeap::SetUp(this, read_only_deserializer);
-  heap_.SetUpSpaces();
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL) 
+    heap_.SetUpSpaces();
 
   isolate_data_.external_reference_table()->Init(this);
 

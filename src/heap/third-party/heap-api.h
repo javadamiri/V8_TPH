@@ -33,6 +33,10 @@ class Heap {
   static bool IsValidHeapObject(HeapObject object);
 
   bool CollectGarbage();
+
+  void ResetIterator();
+
+  HeapObject NextObject();
 };
 
 }  // namespace third_party_heap

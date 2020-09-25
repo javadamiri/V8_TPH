@@ -1378,6 +1378,9 @@ void ReportDuplicates(int size, std::vector<HeapObject>* objects) {
 }  // anonymous namespace
 
 void Heap::CollectAllAvailableGarbage(GarbageCollectionReason gc_reason) {
+  // TODO(Javad): GC not supported by TPH yet
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
+
   // Since we are ignoring the return value, the exact choice of space does
   // not matter, so long as we do not specify NEW_SPACE, which would not
   // cause a full GC.

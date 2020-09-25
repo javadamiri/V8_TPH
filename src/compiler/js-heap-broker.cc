@@ -2214,7 +2214,8 @@ void JSObjectData::SerializeRecursiveAsBoilerplate(JSHeapBroker* broker,
       elements_object->map() == ReadOnlyRoots(isolate).fixed_cow_array_map();
   if (empty_or_cow) {
     // We need to make sure copy-on-write elements are tenured.
-    if (ObjectInYoungGeneration(*elements_object)) {
+    if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
+        ObjectInYoungGeneration(*elements_object)) {
       elements_object = isolate->factory()->CopyAndTenureFixedCOWArray(
           Handle<FixedArray>::cast(elements_object));
       boilerplate->set_elements(*elements_object);

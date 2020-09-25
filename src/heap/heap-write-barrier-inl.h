@@ -271,9 +271,13 @@ inline bool ObjectInYoungGeneration(Object object) {
 }
 
 inline bool IsReadOnlyHeapObject(HeapObject object) {
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP
+  return ReadOnlyHeap::Contains(object);
+#else
   heap_internals::MemoryChunk* chunk =
       heap_internals::MemoryChunk::FromHeapObject(object);
   return chunk->InReadOnlySpace();
+#endif
 }
 
 }  // namespace internal

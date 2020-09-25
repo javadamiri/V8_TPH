@@ -1309,6 +1309,10 @@ TimedHistogram* Heap::GCTypeTimer(GarbageCollector collector) {
 
 void Heap::CollectAllGarbage(int flags, GarbageCollectionReason gc_reason,
                              const v8::GCCallbackFlags gc_callback_flags) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
+    tp_heap_->CollectGarbage();
+    return;
+  }
   // Since we are ignoring the return value, the exact choice of space does
   // not matter, so long as we do not specify NEW_SPACE, which would not
   // cause a full GC.

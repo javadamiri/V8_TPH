@@ -3050,6 +3050,7 @@ class LeftTrimmerVerifierRootVisitor : public RootVisitor {
 
 namespace {
 bool MayContainRecordedSlots(HeapObject object) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
   // New space object do not have recorded slots.
   if (MemoryChunk::FromHeapObject(object)->InYoungGeneration()) return false;
   // Whitelist objects that definitely do not have pointers.

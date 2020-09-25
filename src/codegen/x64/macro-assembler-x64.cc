@@ -272,7 +272,9 @@ void TurboAssembler::DecompressTaggedPointer(Register destination,
                                              Operand field_operand) {
   RecordComment("[ DecompressTaggedPointer");
   movl(destination, field_operand);
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   addq(destination, kRootRegister);
+#endif
   RecordComment("]");
 }
 
@@ -280,7 +282,9 @@ void TurboAssembler::DecompressTaggedPointer(Register destination,
                                              Register source) {
   RecordComment("[ DecompressTaggedPointer");
   movl(destination, source);
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   addq(destination, kRootRegister);
+#endif
   RecordComment("]");
 }
 
@@ -288,7 +292,9 @@ void TurboAssembler::DecompressAnyTagged(Register destination,
                                          Operand field_operand) {
   RecordComment("[ DecompressAnyTagged");
   movl(destination, field_operand);
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   addq(destination, kRootRegister);
+#endif
   RecordComment("]");
 }
 

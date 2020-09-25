@@ -4135,7 +4135,7 @@ TNode<FixedArray> CodeStubAssembler::ExtractToFixedArray(
     var_result = to_elements;
 
 #ifndef V8_ENABLE_SINGLE_GENERATION
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(V8_ENABLE_THIRD_PARTY_HEAP)
     TNode<IntPtrT> object_word = BitcastTaggedToWord(to_elements);
     TNode<IntPtrT> object_page = PageFromAddress(object_word);
     TNode<IntPtrT> page_flags =

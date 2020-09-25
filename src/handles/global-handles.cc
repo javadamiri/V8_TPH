@@ -912,7 +912,8 @@ GlobalHandles::~GlobalHandles() { regular_nodes_.reset(nullptr); }
 
 Handle<Object> GlobalHandles::Create(Object value) {
   GlobalHandles::Node* result = regular_nodes_->Acquire(value);
-  if (ObjectInYoungGeneration(value) && !result->is_in_young_list()) {
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
+      ObjectInYoungGeneration(value) && !result->is_in_young_list()) {
     young_nodes_.push_back(result);
     result->set_in_young_list(true);
   }

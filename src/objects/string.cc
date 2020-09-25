@@ -42,8 +42,10 @@ Handle<String> String::SlowFlatten(Isolate* isolate, Handle<ConsString> cons,
 
   DCHECK(AllowHeapAllocation::IsAllowed());
   int length = cons->length();
-  allocation =
-      ObjectInYoungGeneration(*cons) ? allocation : AllocationType::kOld;
+  allocation = !V8_ENABLE_THIRD_PARTY_HEAP_BOOL && 
+               ObjectInYoungGeneration(*cons) ? 
+               allocation : 
+               AllocationType::kOld;
   Handle<SeqString> result;
   if (cons->IsOneByteRepresentation()) {
     Handle<SeqOneByteString> flat =

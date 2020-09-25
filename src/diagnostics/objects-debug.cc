@@ -431,7 +431,8 @@ void Map::MapVerify(Isolate* isolate) {
   Heap* heap = isolate->heap();
   CHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !ObjectInYoungGeneration(*this));
   CHECK(FIRST_TYPE <= instance_type() && instance_type() <= LAST_TYPE);
-  CHECK(instance_size() == kVariableSizeSentinel ||
+  CHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+        instance_size() == kVariableSizeSentinel ||
         (kTaggedSize <= instance_size() &&
          static_cast<size_t>(instance_size()) < heap->Capacity()));
   if (IsContextMap()) {

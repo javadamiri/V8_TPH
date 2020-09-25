@@ -548,7 +548,7 @@ Code JSFunction::code() const {
 }
 
 void JSFunction::set_code(Code value) {
-  DCHECK(!ObjectInYoungGeneration(value));
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !ObjectInYoungGeneration(value));
   RELAXED_WRITE_FIELD(*this, kCodeOffset, value);
 #ifndef V8_DISABLE_WRITE_BARRIERS
   MarkingBarrier(*this, RawField(kCodeOffset), value);
@@ -899,8 +899,10 @@ DEF_GETTER(JSObject, element_dictionary, NumberDictionary) {
 
 void JSReceiver::initialize_properties(Isolate* isolate) {
   ReadOnlyRoots roots(isolate);
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   DCHECK(!ObjectInYoungGeneration(roots.empty_fixed_array()));
   DCHECK(!ObjectInYoungGeneration(roots.empty_property_dictionary()));
+#endif
   if (map(isolate).is_dictionary_map()) {
     WRITE_FIELD(*this, kPropertiesOrHashOffset,
                 roots.empty_property_dictionary());

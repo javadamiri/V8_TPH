@@ -429,7 +429,7 @@ void JSObject::JSObjectVerify(Isolate* isolate) {
 void Map::MapVerify(Isolate* isolate) {
   TorqueGeneratedClassVerifiers::MapVerify(*this, isolate);
   Heap* heap = isolate->heap();
-  CHECK(!ObjectInYoungGeneration(*this));
+  CHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !ObjectInYoungGeneration(*this));
   CHECK(FIRST_TYPE <= instance_type() && instance_type() <= LAST_TYPE);
   CHECK(instance_size() == kVariableSizeSentinel ||
         (kTaggedSize <= instance_size() &&

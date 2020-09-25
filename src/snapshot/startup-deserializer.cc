@@ -41,7 +41,8 @@ void StartupDeserializer::DeserializeInto(Isolate* isolate) {
 
     // Flush the instruction cache for the entire code-space. Must happen after
     // builtins deserialization.
-    FlushICache();
+    if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)  
+      FlushICache();
   }
 
   CheckNoArrayBufferBackingStores();

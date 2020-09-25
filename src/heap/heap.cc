@@ -1676,7 +1676,8 @@ int Heap::NotifyContextDisposed(bool dependant_context) {
   }
 
   number_of_disposed_maps_ = retained_maps().length();
-  tracer()->AddContextDisposalTime(MonotonicallyIncreasingTimeInMs());
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)  
+    tracer()->AddContextDisposalTime(MonotonicallyIncreasingTimeInMs());
   return ++contexts_disposed_;
 }
 

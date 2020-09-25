@@ -75,6 +75,8 @@ Maybe<GCOptions> Parse(v8::Isolate* isolate,
 
 void InvokeGC(v8::Isolate* isolate, v8::Isolate::GarbageCollectionType type,
               v8::EmbedderHeapTracer::EmbedderStackState embedder_stack_state) {
+  // TODO(Javad): fix this when TPH supports GC
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   Heap* heap = reinterpret_cast<Isolate*>(isolate)->heap();
   switch (type) {
     case v8::Isolate::GarbageCollectionType::kMinorGarbageCollection:

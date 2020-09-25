@@ -2858,6 +2858,7 @@ HeapObject Heap::AlignWithFiller(HeapObject object, int object_size,
 
 void* Heap::AllocateExternalBackingStore(
     const std::function<void*(size_t)>& allocate, size_t byte_length) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return allocate(byte_length);
   if (!always_allocate()) {
     size_t new_space_backing_store_bytes =
         new_space()->ExternalBackingStoreBytes();

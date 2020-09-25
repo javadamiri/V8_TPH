@@ -2976,7 +2976,8 @@ void Isolate::Deinit() {
 
   // We start with the heap tear down so that releasing managed objects does
   // not cause a GC.
-  heap_.StartTearDown();
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)  
+    heap_.StartTearDown();
 
   ReleaseSharedPtrs();
 
@@ -3000,7 +3001,8 @@ void Isolate::Deinit() {
   // This stops cancelable tasks (i.e. concurrent marking tasks)
   cancelable_task_manager()->CancelAndWait();
 
-  heap_.TearDown();
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+    heap_.TearDown();
   logger_->TearDown();
 
   if (wasm_engine_) {

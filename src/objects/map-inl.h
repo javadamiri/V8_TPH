@@ -230,7 +230,7 @@ FixedArrayBase Map::GetInitialElements() const {
   } else {
     UNREACHABLE();
   }
-  DCHECK(!ObjectInYoungGeneration(result));
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !ObjectInYoungGeneration(result));
   return result;
 }
 

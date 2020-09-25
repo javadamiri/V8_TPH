@@ -179,7 +179,7 @@ AllocationResult Heap::AllocateRaw(int size_in_bytes, AllocationType type,
   DCHECK_IMPLIES(type == AllocationType::kCode,
                  alignment == AllocationAlignment::kCodeAligned);
   DCHECK_EQ(gc_state_, NOT_IN_GC);
-#ifdef V8_ENABLE_ALLOCATION_TIMEOUT
+#if defined(V8_ENABLE_ALLOCATION_TIMEOUT) && !defined(V8_ENABLE_THIRD_PARTY_HEAP)
   if (FLAG_random_gc_interval > 0 || FLAG_gc_interval >= 0) {
     if (!always_allocate() && Heap::allocation_timeout_-- <= 0) {
       return AllocationResult::Retry();

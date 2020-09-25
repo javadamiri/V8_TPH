@@ -151,6 +151,7 @@ inline void WriteBarrierForCode(Code host) {
 
 inline void MarkingBarrierForArrayBufferExtension(
     HeapObject object, ArrayBufferExtension* extension) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   heap_internals::MemoryChunk* object_chunk =
       heap_internals::MemoryChunk::FromHeapObject(object);
   if (!extension || !object_chunk->IsMarking()) return;

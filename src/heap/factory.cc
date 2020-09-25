@@ -1479,7 +1479,8 @@ Handle<JSObject> Factory::CopyJSObjectWithAllocationSite(
   HeapObject raw_clone = isolate()->heap()->AllocateRawWith<Heap::kRetryOrFail>(
       adjusted_object_size, AllocationType::kYoung);
 
-  DCHECK(Heap::InYoungGeneration(raw_clone) || FLAG_single_generation);
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+         Heap::InYoungGeneration(raw_clone) || FLAG_single_generation);
 
   // Since we know the clone is allocated in new space, we can copy
   // the contents without worrying about updating the write barrier.

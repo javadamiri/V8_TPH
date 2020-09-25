@@ -760,7 +760,7 @@ void String::StringVerify(Isolate* isolate) {
   CHECK(length() >= 0 && length() <= Smi::kMaxValue);
   CHECK_IMPLIES(length() == 0, *this == ReadOnlyRoots(isolate).empty_string());
   if (IsInternalizedString()) {
-    CHECK(!ObjectInYoungGeneration(*this));
+    CHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !ObjectInYoungGeneration(*this));
   }
 }
 

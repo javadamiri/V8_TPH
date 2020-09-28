@@ -3828,6 +3828,7 @@ void Heap::CollectGarbageOnMemoryPressure() {
 
 void Heap::MemoryPressureNotification(MemoryPressureLevel level,
                                       bool is_isolate_locked) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   MemoryPressureLevel previous = memory_pressure_level_;
   memory_pressure_level_ = level;
   if ((previous != MemoryPressureLevel::kCritical &&

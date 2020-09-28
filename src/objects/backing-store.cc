@@ -180,16 +180,18 @@ BackingStore::~BackingStore() {
     }
 
     // Wasm memories are always allocated through the page allocator.
-    auto region = GetRegion(has_guard_regions_, buffer_start_, byte_length_,
-                            byte_capacity_);
+    if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
+      auto region = GetRegion(has_guard_regions_, buffer_start_, byte_length_,
+                              byte_capacity_);
 
-    bool pages_were_freed =
-        region.size() == 0 /* no need to free any pages */ ||
-        FreePages(GetPlatformPageAllocator(),
-                  reinterpret_cast<void*>(region.begin()), region.size());
-    CHECK(pages_were_freed);
-    BackingStore::ReleaseReservation(
-        GetReservationSize(has_guard_regions_, byte_capacity_));
+      bool pages_were_freed =
+          region.size() == 0 /* no need to free any pages */ ||
+          FreePages(GetPlatformPageAllocator(),
+                    reinterpret_cast<void*>(region.begin()), region.size());
+      CHECK(pages_were_freed);
+      BackingStore::ReleaseReservation(
+          GetReservationSize(has_guard_regions_, byte_capacity_));
+    }
     Clear();
     return;
   }
@@ -303,6 +305,7 @@ std::unique_ptr<BackingStore> BackingStore::TryAllocateWasmMemory(
   auto gc_retry = [&](const std::function<bool()>& fn) {
     for (int i = 0; i < 3; i++) {
       if (fn()) return true;
+      if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return true;
       // Collect garbage and retry.
       did_retry = true;
       // TODO(wasm): try Heap::EagerlyFreeExternalMemory() first?

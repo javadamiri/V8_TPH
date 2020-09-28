@@ -6551,6 +6551,7 @@ void Heap::RecordEphemeronKeyWrite(EphemeronHashTable table, Address slot) {
 void Heap::EphemeronKeyWriteBarrierFromCode(Address raw_object,
                                             Address key_slot_address,
                                             Isolate* isolate) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   EphemeronHashTable table = EphemeronHashTable::cast(Object(raw_object));
   MaybeObjectSlot key_slot(key_slot_address);
   MaybeObject maybe_key = *key_slot;

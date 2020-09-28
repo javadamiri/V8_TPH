@@ -1907,7 +1907,8 @@ class FastElementsAccessor : public ElementsAccessorBase<Subclass, KindTraits> {
     const int kMinLengthForSparsenessCheck = 64;
     if (backing_store->length() < kMinLengthForSparsenessCheck) return;
     // TODO(ulan): Check if it works with young large objects.
-    if (ObjectInYoungGeneration(*backing_store)) return;
+    if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && 
+        ObjectInYoungGeneration(*backing_store)) return;
     uint32_t length = 0;
     if (obj->IsJSArray()) {
       JSArray::cast(*obj).length().ToArrayLength(&length);

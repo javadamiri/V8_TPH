@@ -6056,6 +6056,9 @@ HeapObjectIterator::HeapObjectIterator(
       filter_(nullptr),
       space_iterator_(nullptr),
       object_iterator_(nullptr) {
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP
+  heap_->tp_heap_->ResetIterator();
+#else
   heap_->MakeHeapIterable();
   // Start the iteration.
   space_iterator_ = new SpaceIterator(heap_);
@@ -6067,6 +6070,7 @@ HeapObjectIterator::HeapObjectIterator(
       break;
   }
   object_iterator_ = space_iterator_->Next()->GetObjectIterator(heap_);
+#endif
 }
 
 HeapObjectIterator::~HeapObjectIterator() {
@@ -6090,6 +6094,9 @@ HeapObject HeapObjectIterator::Next() {
 }
 
 HeapObject HeapObjectIterator::NextObject() {
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP
+  return heap_->tp_heap_->NextObject();
+#else
   // No iterator means we are done.
   if (object_iterator_.get() == nullptr) return HeapObject();
 
@@ -6110,6 +6117,7 @@ HeapObject HeapObjectIterator::NextObject() {
   // Done with the last space.
   object_iterator_.reset(nullptr);
   return HeapObject();
+#endif
 }
 
 void Heap::UpdateTotalGCTime(double duration) {

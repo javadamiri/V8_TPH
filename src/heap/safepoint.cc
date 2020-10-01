@@ -51,6 +51,7 @@ void GlobalSafepoint::EnterSafepointScope() {
 }
 
 void GlobalSafepoint::LeaveSafepointScope() {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   if (!FLAG_local_heaps) return;
 
   DCHECK_GT(active_safepoint_scopes_, 0);
@@ -109,6 +110,7 @@ void GlobalSafepoint::Barrier::Wait() {
 }
 
 SafepointScope::SafepointScope(Heap* heap) : safepoint_(heap->safepoint()) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   safepoint_->EnterSafepointScope();
 }
 

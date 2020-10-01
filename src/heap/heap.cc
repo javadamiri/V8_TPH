@@ -5305,6 +5305,7 @@ class StressConcurrentAllocationObserver : public AllocationObserver {
 };
 
 void Heap::SetUpSpaces() {
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   // Ensure SetUpFromReadOnlySpace has been ran.
   DCHECK_NOT_NULL(read_only_space_);
   space_[NEW_SPACE] = new_space_ =
@@ -5369,6 +5370,9 @@ void Heap::SetUpSpaces() {
   }
 
   write_protect_code_memory_ = FLAG_write_protect_code_memory;
+#else   // V8_ENABLE_THIRD_PARTY_HEAP
+  array_buffer_sweeper_.reset(new ArrayBufferSweeper(this));
+#endif  // V8_ENABLE_THIRD_PARTY_HEAP
 }
 
 void Heap::InitializeHashSeed() {

@@ -22,6 +22,8 @@ inline const Isolate* GetIsolateForPtrComprFromOnHeapAddress(Address address) {
 }
 
 inline const Isolate* GetIsolateForPtrCompr(HeapObject object) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) 
+    return Heap::GetIsolateFromWritableObject(object);
   return GetIsolateForPtrComprFromOnHeapAddress(object.ptr());
 }
 

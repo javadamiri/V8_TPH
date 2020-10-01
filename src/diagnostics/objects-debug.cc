@@ -432,12 +432,14 @@ void JSObject::JSObjectVerify(Isolate* isolate) {
 
 void Map::MapVerify(Isolate* isolate) {
   TorqueGeneratedClassVerifiers::MapVerify(*this, isolate);
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   Heap* heap = isolate->heap();
   CHECK(!ObjectInYoungGeneration(*this));
   CHECK(FIRST_TYPE <= instance_type() && instance_type() <= LAST_TYPE);
   CHECK(instance_size() == kVariableSizeSentinel ||
         (kTaggedSize <= instance_size() &&
          static_cast<size_t>(instance_size()) < heap->Capacity()));
+#endif  
   if (IsContextMap()) {
     CHECK(native_context().IsNativeContext());
   } else {

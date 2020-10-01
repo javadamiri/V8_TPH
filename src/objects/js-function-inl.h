@@ -123,7 +123,7 @@ Code JSFunction::code() const {
 }
 
 void JSFunction::set_code(Code value) {
-  DCHECK(!ObjectInYoungGeneration(value));
+  DCHECK(V8_ENABLE_THIRD_PARTY_HEAP_BOOL || !ObjectInYoungGeneration(value));
   RELAXED_WRITE_FIELD(*this, kCodeOffset, value);
 #ifndef V8_DISABLE_WRITE_BARRIERS
   WriteBarrier::Marking(*this, RawField(kCodeOffset), value);

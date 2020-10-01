@@ -174,7 +174,7 @@ AllocationResult Heap::AllocateRaw(int size_in_bytes, AllocationType type,
   DCHECK_IMPLIES(type == AllocationType::kCode,
                  alignment == AllocationAlignment::kCodeAligned);
   DCHECK_EQ(gc_state(), NOT_IN_GC);
-#ifdef V8_ENABLE_ALLOCATION_TIMEOUT
+#if defined(V8_ENABLE_ALLOCATION_TIMEOUT) && !defined(V8_ENABLE_THIRD_PARTY_HEAP)
   if (FLAG_random_gc_interval > 0 || FLAG_gc_interval >= 0) {
     if (!always_allocate() && Heap::allocation_timeout_-- <= 0) {
       return AllocationResult::Retry();
@@ -186,6 +186,7 @@ AllocationResult Heap::AllocateRaw(int size_in_bytes, AllocationType type,
 #endif
 
   size_t large_object_threshold =
+      !V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
       AllocationType::kCode == type
           ? std::min(kMaxRegularHeapObjectSize, code_space()->AreaSize())
           : kMaxRegularHeapObjectSize;

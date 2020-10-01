@@ -689,7 +689,9 @@ size_t StringTable::GetCurrentMemoryUsage() const {
 void StringTable::IterateElements(RootVisitor* visitor) {
   // This should only happen during garbage collection when background threads
   // are paused, so the load can be relaxed.
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   DCHECK_IMPLIES(FLAG_local_heaps, isolate_->heap()->safepoint()->IsActive());
+#endif
   data_.load(std::memory_order_relaxed)->IterateElements(visitor);
 }
 

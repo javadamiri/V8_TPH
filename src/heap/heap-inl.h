@@ -404,7 +404,7 @@ bool Heap::InYoungGeneration(MaybeObject object) {
 
 // static
 bool Heap::InYoungGeneration(HeapObject heap_object) {
-  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
+  DCHECK(!V8_ENABLE_THIRD_PARTY_HEAP_BOOL);
   bool result =
       BasicMemoryChunk::FromHeapObject(heap_object)->InYoungGeneration();
 #ifdef DEBUG

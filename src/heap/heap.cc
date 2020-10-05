@@ -1280,6 +1280,10 @@ TimedHistogram* Heap::GCTypeTimer(GarbageCollector collector) {
 
 void Heap::CollectAllGarbage(int flags, GarbageCollectionReason gc_reason,
                              const v8::GCCallbackFlags gc_callback_flags) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
+    tp_heap_->CollectGarbage();
+    return;
+  }
   // Since we are ignoring the return value, the exact choice of space does
   // not matter, so long as we do not specify NEW_SPACE, which would not
   // cause a full GC.
@@ -1420,7 +1424,7 @@ void Heap::CollectAllAvailableGarbage(GarbageCollectionReason gc_reason) {
 void Heap::PreciseCollectAllGarbage(int flags,
                                     GarbageCollectionReason gc_reason,
                                     const GCCallbackFlags gc_callback_flags) {
-  if (!incremental_marking()->IsStopped()) {
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && !incremental_marking()->IsStopped()) {
     FinalizeIncrementalMarkingAtomically(gc_reason);
   }
   CollectAllGarbage(flags, gc_reason, gc_callback_flags);
@@ -6849,6 +6853,7 @@ bool Heap::PageFlagsAreConsistent(HeapObject object) {
 
 void Heap::SetEmbedderStackStateForNextFinalizaton(
     EmbedderHeapTracer::EmbedderStackState stack_state) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   local_embedder_heap_tracer()->SetEmbedderStackStateForNextFinalization(
       stack_state);
 }

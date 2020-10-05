@@ -120,6 +120,32 @@ Reduction MemoryLowering::ReduceAllocateRaw(
     }
   }
 
+if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
+    auto done = __ MakeLabel(MachineType::PointerRepresentation());
+    if (!allocate_operator_.is_set()) {
+      auto descriptor = AllocateDescriptor{};
+      auto call_descriptor = Linkage::GetStubCallDescriptor(
+          graph_zone(), descriptor, descriptor.GetStackParameterCount(),
+          CallDescriptor::kCanUseRoots, Operator::kNoThrow);
+      allocate_operator_.set(common()->Call(call_descriptor));
+    }
+    __ Goto(&done, __ Call(allocate_operator_.get(), allocate_builtin, size));
+
+    __ Bind(&done);
+    value = done.PhiAt(0);
+    effect = gasm()->effect();
+    control = gasm()->control();
+
+    if (state_ptr) {
+      // Create an unfoldable allocation group.
+      AllocationGroup* group =
+          zone()->New<AllocationGroup>(value, allocation_type, size, zone());
+      *state_ptr = AllocationState::Closed(group, effect, zone());
+    }
+
+    return Replace(value);
+  }
+
   // Determine the top/limit addresses.
   Node* top_address = __ ExternalConstant(
       allocation_type == AllocationType::kYoung

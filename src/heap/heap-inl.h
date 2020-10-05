@@ -574,7 +574,7 @@ void Heap::ExternalStringTable::AddString(String string) {
   DCHECK(string.IsExternalString());
   DCHECK(!Contains(string));
 
-  if (InYoungGeneration(string)) {
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && InYoungGeneration(string)) {
     young_strings_.push_back(string);
   } else {
     old_strings_.push_back(string);

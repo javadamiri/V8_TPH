@@ -1076,6 +1076,21 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
                                                  AllocationFlags flags,
                                                  TNode<RawPtrT> top_address,
                                                  TNode<RawPtrT> limit_address) {
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP  
+  bool needs_double_alignment = flags & kDoubleAlignment;
+  bool allow_large_object_allocation = flags & kAllowLargeObjectAllocation;
+  
+  TVARIABLE(Object, result);
+  Label out(this);
+
+  TNode<Smi> runtime_flags = SmiConstant(Smi::FromInt(
+        AllocateDoubleAlignFlag::encode(needs_double_alignment) |
+        AllowLargeObjectAllocationFlag::encode(allow_large_object_allocation)));
+  result =
+        CallRuntime(Runtime::kAllocateInOldGeneration, NoContextConstant(),
+                    SmiTag(size_in_bytes), runtime_flags);
+  Goto(&out);
+#else   
   Label if_out_of_memory(this, Label::kDeferred);
 
   // TODO(jgruber,jkummerow): Extract the slow paths (= probably everything
@@ -1192,6 +1207,7 @@ TNode<HeapObject> CodeStubAssembler::AllocateRaw(TNode<IntPtrT> size_in_bytes,
                 NoContextConstant());
     Unreachable();
   }
+#endif  // V8_ENABLE_THIRD_PARTY_HEAP
 
   BIND(&out);
   return UncheckedCast<HeapObject>(result.value());
@@ -1256,6 +1272,7 @@ TNode<HeapObject> CodeStubAssembler::Allocate(TNode<IntPtrT> size_in_bytes,
         allow_large_objects ? AllowLargeObjects::kTrue
                             : AllowLargeObjects::kFalse);
   }
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP
   TNode<ExternalReference> top_address = ExternalConstant(
       new_space
           ? ExternalReference::new_space_allocation_top_address(isolate())
@@ -1273,6 +1290,10 @@ TNode<HeapObject> CodeStubAssembler::Allocate(TNode<IntPtrT> size_in_bytes,
   TNode<IntPtrT> limit_address =
       IntPtrAdd(ReinterpretCast<IntPtrT>(top_address),
                 IntPtrConstant(kSystemPointerSize));
+#else
+  TNode<ExternalReference> top_address = ExternalConstant(ExternalReference());
+  TNode<IntPtrT> limit_address;
+#endif
 
   if (flags & kDoubleAlignment) {
     return AllocateRawDoubleAligned(size_in_bytes, flags,
@@ -4005,7 +4026,7 @@ TNode<FixedArray> CodeStubAssembler::ExtractToFixedArray(
     var_result = to_elements;
 
 #ifndef V8_ENABLE_SINGLE_GENERATION
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(V8_ENABLE_THIRD_PARTY_HEAP)
     TNode<IntPtrT> object_word = BitcastTaggedToWord(to_elements);
     TNode<IntPtrT> object_page = PageFromAddress(object_word);
     TNode<IntPtrT> page_flags =
@@ -10227,6 +10248,7 @@ void CodeStubAssembler::TransitionElementsKind(TNode<JSObject> object,
 
 void CodeStubAssembler::TrapAllocationMemento(TNode<JSObject> object,
                                               Label* memento_found) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   Comment("[ TrapAllocationMemento");
   Label no_memento_found(this);
   Label top_check(this), map_check(this);

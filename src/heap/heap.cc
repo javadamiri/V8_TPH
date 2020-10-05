@@ -1714,7 +1714,8 @@ int Heap::NotifyContextDisposed(bool dependant_context) {
         ReadOnlyRoots(this).empty_weak_array_list());
   }
 
-  tracer()->AddContextDisposalTime(MonotonicallyIncreasingTimeInMs());
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+    tracer()->AddContextDisposalTime(MonotonicallyIncreasingTimeInMs());
   return ++contexts_disposed_;
 }
 

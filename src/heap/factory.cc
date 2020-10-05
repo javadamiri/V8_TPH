@@ -827,7 +827,8 @@ MaybeHandle<Map> Factory::InternalizedStringMapForString(
     Handle<String> string) {
   // If the string is in the young generation, it cannot be used as
   // internalized.
-  if (Heap::InYoungGeneration(*string)) return MaybeHandle<Map>();
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && Heap::InYoungGeneration(*string)) 
+    return MaybeHandle<Map>();
 
   return GetInternalizedStringMap(this, string);
 }

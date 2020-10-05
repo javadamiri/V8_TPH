@@ -180,7 +180,8 @@ Handle<BytecodeArray> FactoryBase<Impl>::NewBytecodeArray(
   }
   // Bytecode array is AllocationType::kOld, so constant pool array should be
   // too.
-  DCHECK(!Heap::InYoungGeneration(*constant_pool));
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+    DCHECK(!Heap::InYoungGeneration(*constant_pool));
 
   int size = BytecodeArray::SizeFor(length);
   HeapObject result = AllocateRawWithImmortalMap(

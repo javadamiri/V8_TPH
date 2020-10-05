@@ -515,7 +515,8 @@ TSlot Deserializer::ReadRepeatedObject(TSlot current, int repeat_count) {
   CHECK_LE(2, repeat_count);
 
   HeapObject heap_object = ReadObject();
-  DCHECK(!Heap::InYoungGeneration(heap_object));
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+    DCHECK(!Heap::InYoungGeneration(heap_object));
   for (int i = 0; i < repeat_count; i++) {
     // Repeated values are not subject to the write barrier so we don't need
     // to trigger it.
@@ -586,7 +587,8 @@ TSlot Deserializer::ReadSingleBytecodeData(byte data, TSlot current,
       // Save the reference type before recursing down into reading the object.
       HeapObjectReferenceType ref_type = GetAndResetNextReferenceType();
       HeapObject heap_object = ReadObject(space);
-      DCHECK(!Heap::InYoungGeneration(heap_object));
+      if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+        DCHECK(!Heap::InYoungGeneration(heap_object));
       return Write(current, HeapObjectReference::From(heap_object, ref_type));
     }
 
@@ -595,7 +597,8 @@ TSlot Deserializer::ReadSingleBytecodeData(byte data, TSlot current,
     case CASE_RANGE_ALL_SPACES(kBackref): {
       SnapshotSpace space = BackRef::Decode(data);
       HeapObject heap_object = GetBackReferencedObject(space);
-      DCHECK(!Heap::InYoungGeneration(heap_object));
+      if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)  
+        DCHECK(!Heap::InYoungGeneration(heap_object));
       return Write(current, HeapObjectReference::From(
                                 heap_object, GetAndResetNextReferenceType()));
     }
@@ -606,7 +609,8 @@ TSlot Deserializer::ReadSingleBytecodeData(byte data, TSlot current,
       int id = source_.GetInt();
       RootIndex root_index = static_cast<RootIndex>(id);
       HeapObject heap_object = HeapObject::cast(isolate()->root(root_index));
-      DCHECK(!Heap::InYoungGeneration(heap_object));
+      if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+        DCHECK(!Heap::InYoungGeneration(heap_object));
       hot_objects_.Add(heap_object);
       return Write(current, HeapObjectReference::From(
                                 heap_object, GetAndResetNextReferenceType()));
@@ -618,7 +622,8 @@ TSlot Deserializer::ReadSingleBytecodeData(byte data, TSlot current,
       int cache_index = source_.GetInt();
       HeapObject heap_object =
           HeapObject::cast(isolate()->startup_object_cache()->at(cache_index));
-      DCHECK(!Heap::InYoungGeneration(heap_object));
+      if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+        DCHECK(!Heap::InYoungGeneration(heap_object));
       return Write(current, HeapObjectReference::From(
                                 heap_object, GetAndResetNextReferenceType()));
     }
@@ -629,7 +634,8 @@ TSlot Deserializer::ReadSingleBytecodeData(byte data, TSlot current,
       int cache_index = source_.GetInt();
       HeapObject heap_object = HeapObject::cast(
           isolate()->read_only_heap()->cached_read_only_object(cache_index));
-      DCHECK(!Heap::InYoungGeneration(heap_object));
+      if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+        DCHECK(!Heap::InYoungGeneration(heap_object));
       return Write(current, HeapObjectReference::From(
                                 heap_object, GetAndResetNextReferenceType()));
     }
@@ -638,7 +644,8 @@ TSlot Deserializer::ReadSingleBytecodeData(byte data, TSlot current,
     // object.
     case kNewMetaMap: {
       HeapObject heap_object = ReadMetaMap();
-      DCHECK(!Heap::InYoungGeneration(heap_object));
+      if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+        DCHECK(!Heap::InYoungGeneration(heap_object));
       return Write(current, HeapObjectReference::Strong(heap_object));
     }
 
@@ -670,7 +677,7 @@ TSlot Deserializer::ReadSingleBytecodeData(byte data, TSlot current,
       // This is the only case where we might encounter new space objects, so
       // maybe emit a write barrier before returning the updated slot.
       TSlot ret = Write(current, ref);
-      if (Heap::InYoungGeneration(ref)) {
+      if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && Heap::InYoungGeneration(ref)) {
         HeapObject current_object =
             HeapObject::FromAddress(current_object_address);
         GenerationalBarrier(current_object, MaybeObjectSlot(current.address()),
@@ -813,14 +820,16 @@ TSlot Deserializer::ReadSingleBytecodeData(byte data, TSlot current,
 
       RootIndex root_index = RootArrayConstant::Decode(data);
       MaybeObject object = MaybeObject(ReadOnlyRoots(isolate()).at(root_index));
-      DCHECK(!Heap::InYoungGeneration(object));
+      if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)
+        DCHECK(!Heap::InYoungGeneration(object));
       return Write(current, object);
     }
 
     case CASE_RANGE(kHotObject, 8): {
       int index = HotObject::Decode(data);
       HeapObject hot_object = hot_objects_.Get(index);
-      DCHECK(!Heap::InYoungGeneration(hot_object));
+      if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL)  
+        DCHECK(!Heap::InYoungGeneration(hot_object));
       return Write(current, HeapObjectReference::From(
                                 hot_object, GetAndResetNextReferenceType()));
     }

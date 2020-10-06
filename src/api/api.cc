@@ -8894,6 +8894,7 @@ void Isolate::SetAddCrashKeyCallback(AddCrashKeyCallback callback) {
 }
 
 bool Isolate::IdleNotificationDeadline(double deadline_in_seconds) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return true;
   // Returning true tells the caller that it need not
   // continue to call IdleNotification.
   i::Isolate* isolate = reinterpret_cast<i::Isolate*>(this);

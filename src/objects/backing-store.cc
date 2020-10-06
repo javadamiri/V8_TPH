@@ -314,6 +314,7 @@ std::unique_ptr<BackingStore> BackingStore::TryAllocateWasmMemory(
   auto gc_retry = [&](const std::function<bool()>& fn) {
     for (int i = 0; i < 3; i++) {
       if (fn()) return true;
+      if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return true;
       // Collect garbage and retry.
       did_retry = true;
       // TODO(wasm): try Heap::EagerlyFreeExternalMemory() first?

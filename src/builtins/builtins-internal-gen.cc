@@ -311,6 +311,10 @@ TF_BUILTIN(RecordWrite, RecordWriteCodeStubAssembler) {
   Label incremental_wb(this);
   Label exit(this);
 
+#ifdef V8_ENABLE_THIRD_PARTY_HEAP
+  Goto(&exit);
+#else
+
   TNode<Smi> remembered_set =
       UncheckedCast<Smi>(Parameter(Descriptor::kRememberedSet));
   Branch(ShouldEmitRememberSet(remembered_set), &generational_wb,
@@ -399,6 +403,7 @@ TF_BUILTIN(RecordWrite, RecordWriteCodeStubAssembler) {
           function, object, slot, fp_mode, &exit);
     }
   }
+#endif
 
   BIND(&exit);
   IncrementCounter(isolate()->counters()->write_barriers(), 1);

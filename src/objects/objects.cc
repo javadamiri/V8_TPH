@@ -5775,7 +5775,8 @@ Handle<Derived> HashTable<Derived, Shape>::EnsureCapacity(
   int capacity = table->Capacity();
   int new_nof = table->NumberOfElements() + n;
 
-  bool should_pretenure = allocation == AllocationType::kOld ||
+  bool should_pretenure = V8_ENABLE_THIRD_PARTY_HEAP_BOOL ||
+                          allocation == AllocationType::kOld ||
                           ((capacity > kMinCapacityForPretenure) &&
                            !Heap::InYoungGeneration(*table));
   Handle<Derived> new_table = HashTable::New(

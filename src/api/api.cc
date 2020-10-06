@@ -8121,6 +8121,7 @@ void BigInt::ToWordsArray(int* sign_bit, int* word_count,
 }
 
 void Isolate::ReportExternalAllocationLimitReached() {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
   i::Heap* heap = reinterpret_cast<i::Isolate*>(this)->heap();
   if (heap->gc_state() != i::Heap::NOT_IN_GC) return;
   heap->ReportExternalMemoryPressure();

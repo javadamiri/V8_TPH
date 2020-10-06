@@ -248,67 +248,67 @@ class ShouldBeZeroOnReturnScope final {
 
 Object StackGuard::HandleInterrupts() {
   TRACE_EVENT0("v8.execute", "V8.HandleInterrupts");
-
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
 #if DEBUG
-  isolate_->heap()->VerifyNewSpaceTop();
+    isolate_->heap()->VerifyNewSpaceTop();
 #endif
 
-  if (FLAG_verify_predictable) {
-    // Advance synthetic time by making a time request.
-    isolate_->heap()->MonotonicallyIncreasingTimeInMs();
+    if (FLAG_verify_predictable) {
+      // Advance synthetic time by making a time request.
+      isolate_->heap()->MonotonicallyIncreasingTimeInMs();
+    }
+
+    // Fetch and clear interrupt bits in one go. See comments inside the method
+    // for special handling of TERMINATE_EXECUTION.
+    int interrupt_flags = FetchAndClearInterrupts();
+
+    // All interrupts should be fully processed when returning from this method.
+    ShouldBeZeroOnReturnScope should_be_zero_on_return(&interrupt_flags);
+
+    if (TestAndClear(&interrupt_flags, TERMINATE_EXECUTION)) {
+      TRACE_EVENT0("v8.execute", "V8.TerminateExecution");
+      return isolate_->TerminateExecution();
+    }
+
+    if (TestAndClear(&interrupt_flags, GC_REQUEST)) {
+      TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.gc"), "V8.GCHandleGCRequest");
+      isolate_->heap()->HandleGCRequest();
+    }
+
+    if (TestAndClear(&interrupt_flags, GROW_SHARED_MEMORY)) {
+      TRACE_EVENT0("v8.wasm", "V8.WasmGrowSharedMemory");
+      BackingStore::UpdateSharedWasmMemoryObjects(isolate_);
+    }
+
+    if (TestAndClear(&interrupt_flags, DEOPT_MARKED_ALLOCATION_SITES)) {
+      TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.gc"),
+                  "V8.GCDeoptMarkedAllocationSites");
+      isolate_->heap()->DeoptMarkedAllocationSites();
+    }
+
+    if (TestAndClear(&interrupt_flags, INSTALL_CODE)) {
+      TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
+                  "V8.InstallOptimizedFunctions");
+      DCHECK(isolate_->concurrent_recompilation_enabled());
+      isolate_->optimizing_compile_dispatcher()->InstallOptimizedFunctions();
+    }
+
+    if (TestAndClear(&interrupt_flags, API_INTERRUPT)) {
+      TRACE_EVENT0("v8.execute", "V8.InvokeApiInterruptCallbacks");
+      // Callbacks must be invoked outside of ExecutionAccess lock.
+      isolate_->InvokeApiInterruptCallbacks();
+    }
+
+    if (TestAndClear(&interrupt_flags, LOG_WASM_CODE)) {
+      TRACE_EVENT0("v8.wasm", "V8.LogCode");
+      isolate_->wasm_engine()->LogOutstandingCodesForIsolate(isolate_);
+    }
+
+    if (TestAndClear(&interrupt_flags, WASM_CODE_GC)) {
+      TRACE_EVENT0("v8.wasm", "V8.WasmCodeGC");
+      isolate_->wasm_engine()->ReportLiveCodeFromStackForGC(isolate_);
+    }
   }
-
-  // Fetch and clear interrupt bits in one go. See comments inside the method
-  // for special handling of TERMINATE_EXECUTION.
-  int interrupt_flags = FetchAndClearInterrupts();
-
-  // All interrupts should be fully processed when returning from this method.
-  ShouldBeZeroOnReturnScope should_be_zero_on_return(&interrupt_flags);
-
-  if (TestAndClear(&interrupt_flags, TERMINATE_EXECUTION)) {
-    TRACE_EVENT0("v8.execute", "V8.TerminateExecution");
-    return isolate_->TerminateExecution();
-  }
-
-  if (TestAndClear(&interrupt_flags, GC_REQUEST)) {
-    TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.gc"), "V8.GCHandleGCRequest");
-    isolate_->heap()->HandleGCRequest();
-  }
-
-  if (TestAndClear(&interrupt_flags, GROW_SHARED_MEMORY)) {
-    TRACE_EVENT0("v8.wasm", "V8.WasmGrowSharedMemory");
-    BackingStore::UpdateSharedWasmMemoryObjects(isolate_);
-  }
-
-  if (TestAndClear(&interrupt_flags, DEOPT_MARKED_ALLOCATION_SITES)) {
-    TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.gc"),
-                 "V8.GCDeoptMarkedAllocationSites");
-    isolate_->heap()->DeoptMarkedAllocationSites();
-  }
-
-  if (TestAndClear(&interrupt_flags, INSTALL_CODE)) {
-    TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
-                 "V8.InstallOptimizedFunctions");
-    DCHECK(isolate_->concurrent_recompilation_enabled());
-    isolate_->optimizing_compile_dispatcher()->InstallOptimizedFunctions();
-  }
-
-  if (TestAndClear(&interrupt_flags, API_INTERRUPT)) {
-    TRACE_EVENT0("v8.execute", "V8.InvokeApiInterruptCallbacks");
-    // Callbacks must be invoked outside of ExecutionAccess lock.
-    isolate_->InvokeApiInterruptCallbacks();
-  }
-
-  if (TestAndClear(&interrupt_flags, LOG_WASM_CODE)) {
-    TRACE_EVENT0("v8.wasm", "V8.LogCode");
-    isolate_->wasm_engine()->LogOutstandingCodesForIsolate(isolate_);
-  }
-
-  if (TestAndClear(&interrupt_flags, WASM_CODE_GC)) {
-    TRACE_EVENT0("v8.wasm", "V8.WasmCodeGC");
-    isolate_->wasm_engine()->ReportLiveCodeFromStackForGC(isolate_);
-  }
-
   isolate_->counters()->stack_interrupts()->Increment();
 
   return ReadOnlyRoots(isolate_).undefined_value();

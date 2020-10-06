@@ -208,6 +208,7 @@ MaybeHandle<Derived> OrderedHashTable<Derived, entrysize>::Rehash(
 
   MaybeHandle<Derived> new_table_candidate =
       Derived::Allocate(isolate, new_capacity,
+                        !V8_ENABLE_THIRD_PARTY_HEAP_BOOL &&
                         Heap::InYoungGeneration(*table) ? AllocationType::kYoung
                                                         : AllocationType::kOld);
   Handle<Derived> new_table;

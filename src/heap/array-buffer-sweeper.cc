@@ -207,7 +207,7 @@ void ArrayBufferSweeper::Append(JSArrayBuffer object,
                                 ArrayBufferExtension* extension) {
   size_t bytes = extension->accounting_length();
 
-  if (Heap::InYoungGeneration(object)) {
+  if (!V8_ENABLE_THIRD_PARTY_HEAP_BOOL && Heap::InYoungGeneration(object)) {
     young_.Append(extension);
     young_bytes_ += bytes;
   } else {

@@ -4712,6 +4712,7 @@ void JSObject::AddDataElement(Handle<JSObject> object, uint32_t index,
 template <AllocationSiteUpdateMode update_or_check>
 bool JSObject::UpdateAllocationSite(Handle<JSObject> object,
                                     ElementsKind to_kind) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return false;
   if (!object->IsJSArray()) return false;
 
   if (!Heap::InYoungGeneration(*object)) return false;

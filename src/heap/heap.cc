@@ -5105,8 +5105,10 @@ void Heap::EnableInlineAllocation() {
   inline_allocation_disabled_ = false;
 
   // Update inline allocation limit for new space.
+#ifndef V8_ENABLE_THIRD_PARTY_HEAP  
   new_space()->AdvanceAllocationObservers();
   new_space()->UpdateInlineAllocationLimit(0);
+#endif
 }
 
 

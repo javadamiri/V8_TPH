@@ -74,6 +74,7 @@
 #include "torque-generated/class-verifiers.h"
 #include "torque-generated/exported-class-definitions-inl.h"
 #include "torque-generated/internal-class-definitions-inl.h"
+#include "torque-generated/runtime-macros.h"
 
 namespace v8 {
 namespace internal {
@@ -291,9 +292,11 @@ void BytecodeArray::BytecodeArrayVerify(Isolate* isolate) {
   CHECK(IsBytecodeArray(isolate));
   CHECK(constant_pool(isolate).IsFixedArray(isolate));
   VerifyHeapPointer(isolate, constant_pool(isolate));
-  CHECK(synchronized_source_position_table(isolate).IsUndefined(isolate) ||
-        synchronized_source_position_table(isolate).IsException(isolate) ||
-        synchronized_source_position_table(isolate).IsByteArray(isolate));
+  {
+    Object table = source_position_table(isolate, kAcquireLoad);
+    CHECK(table.IsUndefined(isolate) || table.IsException(isolate) ||
+          table.IsByteArray(isolate));
+  }
   CHECK(handler_table(isolate).IsByteArray(isolate));
   for (int i = 0; i < constant_pool(isolate).length(); ++i) {
     // No ThinStrings in the constant pool.
@@ -371,7 +374,7 @@ void JSObject::JSObjectVerify(Isolate* isolate) {
       int delta = actual_unused_property_fields - map().UnusedPropertyFields();
       CHECK_EQ(0, delta % JSObject::kFieldsAdded);
     }
-    DescriptorArray descriptors = map().instance_descriptors();
+    DescriptorArray descriptors = map().instance_descriptors(kRelaxedLoad);
     bool is_transitionable_fast_elements_kind =
         IsTransitionableFastElementsKind(map().elements_kind());
 
@@ -447,13 +450,13 @@ void Map::MapVerify(Isolate* isolate) {
       // Root maps must not have descriptors in the descriptor array that do not
       // belong to the map.
       CHECK_EQ(NumberOfOwnDescriptors(),
-               instance_descriptors().number_of_descriptors());
+               instance_descriptors(kRelaxedLoad).number_of_descriptors());
     } else {
       // If there is a parent map it must be non-stable.
       Map parent = Map::cast(GetBackPointer());
       CHECK(!parent.is_stable());
-      DescriptorArray descriptors = instance_descriptors();
-      if (descriptors == parent.instance_descriptors()) {
+      DescriptorArray descriptors = instance_descriptors(kRelaxedLoad);
+      if (descriptors == parent.instance_descriptors(kRelaxedLoad)) {
         if (NumberOfOwnDescriptors() == parent.NumberOfOwnDescriptors() + 1) {
           // Descriptors sharing through property transitions takes over
           // ownership from the parent map.
@@ -471,14 +474,14 @@ void Map::MapVerify(Isolate* isolate) {
       }
     }
   }
-  SLOW_DCHECK(instance_descriptors().IsSortedNoDuplicates());
+  SLOW_DCHECK(instance_descriptors(kRelaxedLoad).IsSortedNoDuplicates());
   DisallowHeapAllocation no_gc;
   SLOW_DCHECK(
       TransitionsAccessor(isolate, *this, &no_gc).IsSortedNoDuplicates());
   SLOW_DCHECK(TransitionsAccessor(isolate, *this, &no_gc)
                   .IsConsistentWithBackPointers());
   SLOW_DCHECK(!FLAG_unbox_double_fields ||
-              layout_descriptor().IsConsistentWithMap(*this));
+              layout_descriptor(kAcquireLoad).IsConsistentWithMap(*this));
   // Only JSFunction maps have has_prototype_slot() bit set and constructible
   // JSFunction objects must have prototype slot.
   CHECK_IMPLIES(has_prototype_slot(), instance_type() == JS_FUNCTION_TYPE);
@@ -486,7 +489,7 @@ void Map::MapVerify(Isolate* isolate) {
     CHECK(!has_named_interceptor());
     CHECK(!is_dictionary_map());
     CHECK(!is_access_check_needed());
-    DescriptorArray const descriptors = instance_descriptors();
+    DescriptorArray const descriptors = instance_descriptors(kRelaxedLoad);
     for (InternalIndex i : IterateOwnDescriptors()) {
       CHECK(!descriptors.GetKey(i).IsInterestingSymbol());
     }
@@ -510,7 +513,7 @@ void Map::DictionaryMapVerify(Isolate* isolate) {
   CHECK(is_dictionary_map());
   CHECK_EQ(kInvalidEnumCacheSentinel, EnumLength());
   CHECK_EQ(ReadOnlyRoots(isolate).empty_descriptor_array(),
-           instance_descriptors());
+           instance_descriptors(kRelaxedLoad));
   CHECK_EQ(0, UnusedPropertyFields());
   CHECK_EQ(Map::GetVisitorId(*this), visitor_id());
 }
@@ -1198,6 +1201,24 @@ void SmallOrderedHashSet::SmallOrderedHashSetVerify(Isolate* isolate) {
       CHECK(val.IsTheHole(isolate));
     }
   }
+
+  // Eventually Torque-generated offset computations could replace the ones
+  // implemented in C++. For now, just make sure they match. This could help
+  // ensure that the class definitions in C++ and Torque don't diverge.
+  intptr_t offset;
+  intptr_t length;
+  std::tie(std::ignore, offset, length) =
+      TqRuntimeFieldSliceSmallOrderedHashSetDataTable(isolate, *this);
+  CHECK_EQ(offset, DataTableStartOffset());
+  CHECK_EQ(length, Capacity());
+  std::tie(std::ignore, offset, length) =
+      TqRuntimeFieldSliceSmallOrderedHashSetHashTable(isolate, *this);
+  CHECK_EQ(offset, GetBucketsStartOffset());
+  CHECK_EQ(length, NumberOfBuckets());
+  std::tie(std::ignore, offset, length) =
+      TqRuntimeFieldSliceSmallOrderedHashSetChainTable(isolate, *this);
+  CHECK_EQ(offset, GetChainTableOffset());
+  CHECK_EQ(length, Capacity());
 }
 
 void SmallOrderedNameDictionary::SmallOrderedNameDictionaryVerify(

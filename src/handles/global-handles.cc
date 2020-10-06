@@ -1074,7 +1074,7 @@ void GlobalHandles::MoveTracedGlobal(Address** from, Address** to) {
       }
     }
     DestroyTraced(*from);
-    *from = nullptr;
+    SetSlotThreadSafe(from, nullptr);
   } else {
     // Pure heap move.
     DestroyTraced(*to);
@@ -1087,7 +1087,7 @@ void GlobalHandles::MoveTracedGlobal(Address** from, Address** to) {
     if (to_node->has_destructor()) {
       to_node->set_parameter(to);
     }
-    *from = nullptr;
+    SetSlotThreadSafe(from, nullptr);
   }
   TracedNode::Verify(global_handles, to);
 }

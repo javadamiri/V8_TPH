@@ -82,11 +82,11 @@ vars = {
 
 deps = {
   'build':
-    Var('chromium_url') + '/chromium/src/build.git' + '@' + '3ede10128b2ae14d2ffa8f0ee4bac0561400dc94',
+    Var('chromium_url') + '/chromium/src/build.git' + '@' + '1cb6993e286e4c65bf19da16adb8a39584d6d598',
   'third_party/depot_tools':
-    Var('chromium_url') + '/chromium/tools/depot_tools.git' + '@' + '991ead187c148de57990cbeecb9ad35767987a7c',
+    Var('chromium_url') + '/chromium/tools/depot_tools.git' + '@' + '1407cfd9e5f4de4cf9bd04ecc435ee5b760675c1',
   'third_party/icu':
-    Var('chromium_url') + '/chromium/deps/icu.git' + '@' + 'aef20f06d47ba76fdf13abcdb033e2a408b5a94d',
+    Var('chromium_url') + '/chromium/deps/icu.git' + '@' + 'aba3f0dfeeddc0c69730ec28ef423543b8a62693',
   'third_party/instrumented_libraries':
     Var('chromium_url') + '/chromium/src/third_party/instrumented_libraries.git' + '@' + '6ba978ccb754d270b6cd12da58c8269b617e4f6e',
   'buildtools':
@@ -178,7 +178,7 @@ deps = {
       'dep_type': 'cipd',
   },
   'third_party/catapult': {
-    'url': Var('chromium_url') + '/catapult.git' + '@' + '0f6ed710764d9858eb9d2ad2a2f92fde89d1634b',
+    'url': Var('chromium_url') + '/catapult.git' + '@' + 'd82d30da43cdc96ee5026acc1e0d7d8a33d14313',
     'condition': 'checkout_android',
   },
   'third_party/colorama/src': {
@@ -186,7 +186,7 @@ deps = {
     'condition': 'checkout_android',
   },
   'third_party/fuchsia-sdk': {
-    'url': Var('chromium_url') + '/chromium/src/third_party/fuchsia-sdk.git' + '@' + '6a38b0e1f1f4a6255959b259a681e46ee72dee58',
+    'url': Var('chromium_url') + '/chromium/src/third_party/fuchsia-sdk.git' + '@' + 'f8df9ff79b878d1998970cc04a197061069e48ce',
     'condition': 'checkout_fuchsia',
   },
   'third_party/googletest/src':
@@ -206,7 +206,7 @@ deps = {
   'test/mozilla/data':
     Var('chromium_url') + '/v8/deps/third_party/mozilla-tests.git' + '@' + 'f6c578a10ea707b1a8ab0b88943fe5115ce2b9be',
   'test/test262/data':
-    Var('chromium_url') + '/external/github.com/tc39/test262.git' + '@' + '63976020376c8c2b0ebabf37c364f25288d4b93b',
+    Var('chromium_url') + '/external/github.com/tc39/test262.git' + '@' + 'ad8a5e9940ee60d1ecb6e150b7aecf09b17545dd',
   'test/test262/harness':
     Var('chromium_url') + '/external/github.com/test262-utils/test262-harness-py.git' + '@' + '4555345a943d0c99a9461182705543fb171dda4b',
   'third_party/qemu-linux-x64': {
@@ -233,7 +233,7 @@ deps = {
       'packages': [
           {
               'package': 'fuchsia/third_party/aemu/linux-amd64',
-              'version': 'oJeWXQJJ1lVY6P7l39pBV-mrbeWlw0swPZQuNmcix5AC'
+              'version': 'FgthknmEoQugl3GqOyqz_RsAjIMmeLsa960mZcmhE9UC'
           },
       ],
       'condition': 'host_os == "linux" and checkout_fuchsia',
@@ -250,7 +250,7 @@ deps = {
       'dep_type': 'cipd',
   },
   'tools/clang':
-    Var('chromium_url') + '/chromium/src/tools/clang.git' + '@' + 'bd8e096f1d69fbcb43ee8cf6b77dccbcc19ff9d6',
+    Var('chromium_url') + '/chromium/src/tools/clang.git' + '@' + 'f513a0bef645e51aa34690f665a9d4d396142f5b',
   'tools/luci-go': {
       'packages': [
         {

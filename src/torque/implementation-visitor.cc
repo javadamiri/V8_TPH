@@ -10,6 +10,7 @@
 
 #include "src/base/optional.h"
 #include "src/common/globals.h"
+#include "src/torque/cc-generator.h"
 #include "src/torque/constants.h"
 #include "src/torque/csa-generator.h"
 #include "src/torque/declaration-visitor.h"
@@ -108,6 +109,46 @@ void ImplementationVisitor::EndCSAFiles() {
            << "\n";
     header << "#endif  // " << headerDefine << "\n";
   }
+}
+
+void ImplementationVisitor::BeginRuntimeMacrosFile() {
+  std::ostream& source = runtime_macros_cc_;
+  std::ostream& header = runtime_macros_h_;
+
+  source << "#include \"torque-generated/runtime-macros.h\"\n\n";
+  source << "#include \"src/torque/runtime-macro-shims.h\"\n";
+  for (const std::string& include_path : GlobalContext::CppIncludes()) {
+    source << "#include " << StringLiteralQuote(include_path) << "\n";
+  }
+  source << "\n";
+
+  source << "namespace v8 {\n"
+         << "namespace internal {\n"
+         << "\n";
+
+  const char* kHeaderDefine = "V8_GEN_TORQUE_GENERATED_RUNTIME_MACROS_H_";
+  header << "#ifndef " << kHeaderDefine << "\n";
+  header << "#define " << kHeaderDefine << "\n\n";
+  header << "#include \"src/builtins/torque-csa-header-includes.h\"\n";
+  header << "\n";
+
+  header << "namespace v8 {\n"
+         << "namespace internal {\n"
+         << "\n";
+}
+
+void ImplementationVisitor::EndRuntimeMacrosFile() {
+  std::ostream& source = runtime_macros_cc_;
+  std::ostream& header = runtime_macros_h_;
+
+  source << "}  // namespace internal\n"
+         << "}  // namespace v8\n"
+         << "\n";
+
+  header << "\n}  // namespace internal\n"
+         << "}  // namespace v8\n"
+         << "\n";
+  header << "#endif  // V8_GEN_TORQUE_GENERATED_RUNTIME_MACROS_H_\n";
 }
 
 void ImplementationVisitor::Visit(NamespaceConstant* decl) {
@@ -273,15 +314,23 @@ void ImplementationVisitor::VisitMacroCommon(Macro* macro) {
   bool can_return = return_type != TypeOracle::GetNeverType();
   bool has_return_value =
       can_return && return_type != TypeOracle::GetVoidType();
+  const char* prefix = output_type_ == OutputType::kCC ? "TqRuntime" : "";
 
-  GenerateMacroFunctionDeclaration(header_out(), "", macro);
+  GenerateMacroFunctionDeclaration(header_out(), prefix, macro);
   header_out() << ";\n";
 
-  GenerateMacroFunctionDeclaration(source_out(), "", macro);
+  GenerateMacroFunctionDeclaration(source_out(), prefix, macro);
   source_out() << " {\n";
-  source_out() << "  compiler::CodeAssembler ca_(state_);\n";
-  source_out()
-      << "  compiler::CodeAssembler::SourcePositionScope pos_scope(&ca_);\n";
+
+  if (output_type_ == OutputType::kCC) {
+    // For now, generated C++ is only for field offset computations. If we ever
+    // generate C++ code that can allocate, then it should be handlified.
+    source_out() << "  DisallowHeapAllocation no_gc;\n";
+  } else {
+    source_out() << "  compiler::CodeAssembler ca_(state_);\n";
+    source_out()
+        << "  compiler::CodeAssembler::SourcePositionScope pos_scope(&ca_);\n";
+  }
 
   Stack<std::string> lowered_parameters;
   Stack<const Type*> lowered_parameter_types;
@@ -363,15 +412,24 @@ void ImplementationVisitor::VisitMacroCommon(Macro* macro) {
     assembler().Bind(end);
   }
 
-  CSAGenerator csa_generator{assembler().Result(), source_out()};
-  base::Optional<Stack<std::string>> values =
-      csa_generator.EmitGraph(lowered_parameters);
+  base::Optional<Stack<std::string>> values;
+  if (output_type_ == OutputType::kCC) {
+    CCGenerator cc_generator{assembler().Result(), source_out()};
+    values = cc_generator.EmitGraph(lowered_parameters);
+  } else {
+    CSAGenerator csa_generator{assembler().Result(), source_out()};
+    values = csa_generator.EmitGraph(lowered_parameters);
+  }
 
   assembler_ = base::nullopt;
 
   if (has_return_value) {
     source_out() << "  return ";
-    CSAGenerator::EmitCSAValue(return_value, *values, source_out());
+    if (output_type_ == OutputType::kCC) {
+      CCGenerator::EmitCCValue(return_value, *values, source_out());
+    } else {
+      CSAGenerator::EmitCSAValue(return_value, *values, source_out());
+    }
     source_out() << ";\n";
   }
   source_out() << "}\n\n";
@@ -435,8 +493,8 @@ void ImplementationVisitor::Visit(Builtin* builtin) {
             .Position(signature.parameter_names[signature.implicit_count]->pos);
       }
 
-      source_out()
-          << "  Node* argc = Parameter(Descriptor::kJSActualArgumentsCount);\n";
+      source_out() << "   TNode<Word32T> argc = UncheckedParameter<Word32T>("
+                   << "Descriptor::kJSActualArgumentsCount);\n";
       source_out() << "  TNode<IntPtrT> "
                       "arguments_length(ChangeInt32ToIntPtr(UncheckedCast<"
                       "Int32T>(argc)));\n";
@@ -469,8 +527,8 @@ void ImplementationVisitor::Visit(Builtin* builtin) {
       std::vector<const Type*> expected_types;
       if (param_name == "context") {
         source_out() << "  TNode<NativeContext> " << generated_name
-                     << " = UncheckedCast<NativeContext>(Parameter("
-                     << "Descriptor::kContext));\n";
+                     << " = UncheckedParameter<NativeContext>("
+                     << "Descriptor::kContext);\n";
         source_out() << "  USE(" << generated_name << ");\n";
         expected_types = {TypeOracle::GetNativeContextType(),
                           TypeOracle::GetContextType()};
@@ -479,20 +537,20 @@ void ImplementationVisitor::Visit(Builtin* builtin) {
             << "  TNode<Object> " << generated_name << " = "
             << (builtin->IsVarArgsJavaScript()
                     ? "arguments.GetReceiver()"
-                    : "UncheckedCast<Object>(Parameter(Descriptor::kReceiver))")
+                    : "UncheckedParameter<Object>(Descriptor::kReceiver)")
             << ";\n";
         source_out() << "USE(" << generated_name << ");\n";
         expected_types = {TypeOracle::GetJSAnyType()};
       } else if (param_name == "newTarget") {
         source_out() << "  TNode<Object> " << generated_name
-                     << " = UncheckedCast<Object>(Parameter("
-                     << "Descriptor::kJSNewTarget));\n";
+                     << " = UncheckedParameter<Object>("
+                     << "Descriptor::kJSNewTarget);\n";
         source_out() << "USE(" << generated_name << ");\n";
         expected_types = {TypeOracle::GetJSAnyType()};
       } else if (param_name == "target") {
         source_out() << "  TNode<JSFunction> " << generated_name
-                     << " = UncheckedCast<JSFunction>(Parameter("
-                     << "Descriptor::kJSTarget));\n";
+                     << " = UncheckedParameter<JSFunction>("
+                     << "Descriptor::kJSTarget);\n";
         source_out() << "USE(" << generated_name << ");\n";
         expected_types = {TypeOracle::GetJSFunctionType()};
       } else {
@@ -521,9 +579,9 @@ void ImplementationVisitor::Visit(Builtin* builtin) {
                                      &parameter_bindings, mark_as_used);
       source_out() << "  " << type->GetGeneratedTypeName() << " " << var
                    << " = "
-                   << "UncheckedCast<" << type->GetGeneratedTNodeTypeName()
-                   << ">(Parameter(Descriptor::k"
-                   << CamelifyString(parameter_name) << "));\n";
+                   << "UncheckedParameter<" << type->GetGeneratedTNodeTypeName()
+                   << ">(Descriptor::k" << CamelifyString(parameter_name)
+                   << ");\n";
       source_out() << "  USE(" << var << ");\n";
     }
 
@@ -538,15 +596,15 @@ void ImplementationVisitor::Visit(Builtin* builtin) {
                                      &parameter_bindings, mark_as_used);
       source_out() << "  " << type->GetGeneratedTypeName() << " " << var
                    << " = "
-                   << "UncheckedCast<" << type->GetGeneratedTNodeTypeName()
-                   << ">(Parameter(";
+                   << "UncheckedParameter<" << type->GetGeneratedTNodeTypeName()
+                   << ">(";
       if (i == 0 && has_context_parameter) {
         source_out() << "Descriptor::kContext";
       } else {
         source_out() << "Descriptor::ParameterIndex<"
                      << (has_context_parameter ? i - 1 : i) << ">()";
       }
-      source_out() << "));\n";
+      source_out() << ");\n";
       source_out() << "  USE(" << var << ");\n";
     }
   }
@@ -1255,53 +1313,20 @@ InitializerResults ImplementationVisitor::VisitInitializerResults(
 
 LocationReference ImplementationVisitor::GenerateFieldReference(
     VisitResult object, const Field& field, const ClassType* class_type) {
+  if (field.index.has_value()) {
+    return LocationReference::HeapSlice(
+        GenerateCall(class_type->GetSliceMacroName(field), {{object}, {}}));
+  }
+  DCHECK(field.offset.has_value());
   StackRange result_range = assembler().TopRange(0);
   result_range.Extend(GenerateCopy(object).stack_range());
-  VisitResult offset;
-  if (field.offset.has_value()) {
-    offset =
-        VisitResult(TypeOracle::GetConstInt31Type(), ToString(*field.offset));
-    offset = GenerateImplicitConvert(TypeOracle::GetIntPtrType(), offset);
-  } else {
-    StackScope stack_scope(this);
-    for (const Field& f : class_type->ComputeAllFields()) {
-      if (f.offset) {
-        offset =
-            VisitResult(TypeOracle::GetConstInt31Type(), ToString(*f.offset));
-      }
-      if (f.name_and_type.name == field.name_and_type.name) break;
-      if (f.index) {
-        if (!offset.IsOnStack()) {
-          offset = GenerateImplicitConvert(TypeOracle::GetIntPtrType(), offset);
-        }
-        VisitResult array_length = GenerateArrayLength(object, f);
-        size_t element_size;
-        std::string element_size_string;
-        std::tie(element_size, element_size_string) =
-            *SizeOf(f.name_and_type.type);
-        VisitResult array_element_size =
-            VisitResult(TypeOracle::GetConstInt31Type(), element_size_string);
-        // In contrast to the code used for allocation, we don't need overflow
-        // checks here because we already know all the offsets fit into memory.
-        VisitResult array_size =
-            GenerateCall("*", {{array_length, array_element_size}, {}});
-        offset = GenerateCall("+", {{offset, array_size}, {}});
-      }
-    }
-    DCHECK(offset.IsOnStack());
-    offset = stack_scope.Yield(offset);
-  }
+  VisitResult offset =
+      VisitResult(TypeOracle::GetConstInt31Type(), ToString(*field.offset));
+  offset = GenerateImplicitConvert(TypeOracle::GetIntPtrType(), offset);
   result_range.Extend(offset.stack_range());
-  if (field.index) {
-    VisitResult length = GenerateArrayLength(object, field);
-    result_range.Extend(length.stack_range());
-    const Type* slice_type = TypeOracle::GetSliceType(field.name_and_type.type);
-    return LocationReference::HeapSlice(VisitResult(slice_type, result_range));
-  } else {
-    const Type* type = TypeOracle::GetReferenceType(field.name_and_type.type,
-                                                    field.const_qualified);
-    return LocationReference::HeapReference(VisitResult(type, result_range));
-  }
+  const Type* type = TypeOracle::GetReferenceType(field.name_and_type.type,
+                                                  field.const_qualified);
+  return LocationReference::HeapReference(VisitResult(type, result_range));
 }
 
 // This is used to generate field references during initialization, where we can
@@ -1638,12 +1663,17 @@ void ImplementationVisitor::GenerateImplementation(const std::string& dir) {
     std::string header_file_name = dir + "/" + path_from_root + "-tq-csa.h";
     WriteFile(header_file_name, new_header);
   }
+
+  WriteFile(dir + "/runtime-macros.h", runtime_macros_h_.str());
+  WriteFile(dir + "/runtime-macros.cc", runtime_macros_cc_.str());
 }
 
 void ImplementationVisitor::GenerateMacroFunctionDeclaration(
     std::ostream& o, const std::string& macro_prefix, Macro* macro) {
-  GenerateFunctionDeclaration(o, macro_prefix, macro->ExternalName(),
-                              macro->signature(), macro->parameter_names());
+  GenerateFunctionDeclaration(
+      o, macro_prefix,
+      output_type_ == OutputType::kCC ? macro->CCName() : macro->ExternalName(),
+      macro->signature(), macro->parameter_names());
 }
 
 std::vector<std::string> ImplementationVisitor::GenerateFunctionDeclaration(
@@ -1654,12 +1684,17 @@ std::vector<std::string> ImplementationVisitor::GenerateFunctionDeclaration(
   if (signature.return_type->IsVoidOrNever()) {
     o << "void";
   } else {
-    o << signature.return_type->GetGeneratedTypeName();
+    o << (output_type_ == OutputType::kCC
+              ? signature.return_type->GetRuntimeType()
+              : signature.return_type->GetGeneratedTypeName());
   }
   o << " " << macro_prefix << name << "(";
 
   bool first = true;
-  if (pass_code_assembler_state) {
+  if (output_type_ == OutputType::kCC) {
+    first = false;
+    o << "Isolate* isolate";
+  } else if (pass_code_assembler_state) {
     first = false;
     o << "compiler::CodeAssemblerState* state_";
   }
@@ -1670,7 +1705,9 @@ std::vector<std::string> ImplementationVisitor::GenerateFunctionDeclaration(
     first = false;
     const Type* parameter_type = signature.types()[i];
     const std::string& generated_type_name =
-        parameter_type->GetGeneratedTypeName();
+        output_type_ == OutputType::kCC
+            ? parameter_type->GetRuntimeType()
+            : parameter_type->GetGeneratedTypeName();
 
     generated_parameter_names.push_back(ExternalParameterName(
         i < parameter_names.size() ? parameter_names[i]->value
@@ -1679,6 +1716,9 @@ std::vector<std::string> ImplementationVisitor::GenerateFunctionDeclaration(
   }
 
   for (const LabelDeclaration& label_info : signature.labels) {
+    if (output_type_ == OutputType::kCC) {
+      ReportError("Macros that generate runtime code can't have label exits");
+    }
     if (!first) o << ", ";
     first = false;
     generated_parameter_names.push_back(
@@ -2487,7 +2527,7 @@ VisitResult ImplementationVisitor::GenerateCall(
     }
   }
 
-  bool inline_macro = callable->ShouldBeInlined();
+  bool inline_macro = callable->ShouldBeInlined(output_type_);
   std::vector<VisitResult> implicit_arguments;
   for (size_t i = 0; i < callable->signature().implicit_count; ++i) {
     std::string implicit_name = callable->signature().parameter_names[i]->value;
@@ -2594,7 +2634,18 @@ VisitResult ImplementationVisitor::GenerateCall(
     if (is_tailcall) {
       ReportError("can't tail call a macro");
     }
+
     macro->SetUsed();
+
+    // If we're currently generating a C++ macro and it's calling another macro,
+    // then we need to make sure that we also generate C++ code for the called
+    // macro.
+    if (output_type_ == OutputType::kCC && !inline_macro) {
+      if (auto* torque_macro = TorqueMacro::DynamicCast(macro)) {
+        GlobalContext::EnsureInCCOutputList(torque_macro);
+      }
+    }
+
     if (return_type->IsConstexpr()) {
       DCHECK_EQ(0, arguments.labels.size());
       std::stringstream result;
@@ -2774,6 +2825,15 @@ VisitResult ImplementationVisitor::GenerateCall(
       result << constexpr_arguments[0];
       result << ")";
       return VisitResult(return_type, result.str());
+    } else if (intrinsic->ExternalName() == "%IndexedFieldLength") {
+      const Type* type = specialization_types[0];
+      const ClassType* class_type = ClassType::DynamicCast(type);
+      if (!class_type) {
+        ReportError("%IndexedFieldLength must take a class type parameter");
+      }
+      const Field& field =
+          class_type->LookupField(StringLiteralUnquote(constexpr_arguments[0]));
+      return GenerateArrayLength(VisitResult(type, argument_range), field);
     } else {
       assembler().Emit(CallIntrinsicInstruction{intrinsic, specialization_types,
                                                 constexpr_arguments});
@@ -3065,6 +3125,7 @@ void ImplementationVisitor::VisitAllDeclarables() {
   CurrentCallable::Scope current_callable(nullptr);
   const std::vector<std::unique_ptr<Declarable>>& all_declarables =
       GlobalContext::AllDeclarables();
+
   // This has to be an index-based loop because all_declarables can be extended
   // during the loop.
   for (size_t i = 0; i < all_declarables.size(); ++i) {
@@ -3074,6 +3135,19 @@ void ImplementationVisitor::VisitAllDeclarables() {
       // Recover from compile errors here. The error is recorded already.
     }
   }
+
+  // Do the same for macros which generate C++ code.
+  output_type_ = OutputType::kCC;
+  const std::vector<TorqueMacro*>& cc_macros =
+      GlobalContext::AllMacrosForCCOutput();
+  for (size_t i = 0; i < cc_macros.size(); ++i) {
+    try {
+      Visit(static_cast<Declarable*>(cc_macros[i]));
+    } catch (TorqueAbortCompilation&) {
+      // Recover from compile errors here. The error is recorded already.
+    }
+  }
+  output_type_ = OutputType::kCSA;
 }
 
 void ImplementationVisitor::Visit(Declarable* declarable) {
@@ -3082,7 +3156,7 @@ void ImplementationVisitor::Visit(Declarable* declarable) {
   CurrentFileStreams::Scope current_file_streams(
       &GlobalContext::GeneratedPerFile(declarable->Position().source));
   if (Callable* callable = Callable::DynamicCast(declarable)) {
-    if (!callable->ShouldGenerateExternalCode())
+    if (!callable->ShouldGenerateExternalCode(output_type_))
       CurrentFileStreams::Get() = nullptr;
   }
   switch (declarable->kind()) {

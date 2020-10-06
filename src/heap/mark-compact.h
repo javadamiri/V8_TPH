@@ -13,6 +13,7 @@
 #include "src/heap/marking-worklist.h"
 #include "src/heap/marking.h"
 #include "src/heap/memory-measurement.h"
+#include "src/heap/parallel-work-item.h"
 #include "src/heap/spaces.h"
 #include "src/heap/sweeper.h"
 
@@ -31,7 +32,8 @@ class YoungGenerationMarkingVisitor;
 
 class MarkBitCellIterator {
  public:
-  MarkBitCellIterator(MemoryChunk* chunk, Bitmap* bitmap) : chunk_(chunk) {
+  MarkBitCellIterator(const MemoryChunk* chunk, Bitmap* bitmap)
+      : chunk_(chunk) {
     last_cell_index_ =
         Bitmap::IndexToCell(chunk_->AddressToMarkbitIndex(chunk_->area_end()));
     cell_base_ = chunk_->address();
@@ -82,7 +84,7 @@ class MarkBitCellIterator {
   }
 
  private:
-  MemoryChunk* chunk_;
+  const MemoryChunk* chunk_;
   MarkBit::CellType* cells_;
   unsigned int last_cell_index_;
   unsigned int cell_index_;
@@ -101,7 +103,7 @@ class LiveObjectRange {
     using reference = const value_type&;
     using iterator_category = std::forward_iterator_tag;
 
-    inline iterator(MemoryChunk* chunk, Bitmap* bitmap, Address start);
+    inline iterator(const MemoryChunk* chunk, Bitmap* bitmap, Address start);
 
     inline iterator& operator++();
     inline iterator operator++(int);
@@ -119,7 +121,7 @@ class LiveObjectRange {
    private:
     inline void AdvanceToNextValidObject();
 
-    MemoryChunk* const chunk_;
+    const MemoryChunk* const chunk_;
     Map const one_word_filler_map_;
     Map const two_word_filler_map_;
     Map const free_space_map_;
@@ -130,7 +132,7 @@ class LiveObjectRange {
     int current_size_;
   };
 
-  LiveObjectRange(MemoryChunk* chunk, Bitmap* bitmap)
+  LiveObjectRange(const MemoryChunk* chunk, Bitmap* bitmap)
       : chunk_(chunk),
         bitmap_(bitmap),
         start_(chunk_->area_start()),
@@ -142,7 +144,7 @@ class LiveObjectRange {
   inline iterator end();
 
  private:
-  MemoryChunk* const chunk_;
+  const MemoryChunk* const chunk_;
   Bitmap* bitmap_;
   Address start_;
   Address end_;
@@ -213,30 +215,28 @@ class MarkCompactCollectorBase {
   virtual void Evacuate() = 0;
   virtual void EvacuatePagesInParallel() = 0;
   virtual void UpdatePointersAfterEvacuation() = 0;
-  virtual UpdatingItem* CreateToSpaceUpdatingItem(MemoryChunk* chunk,
-                                                  Address start,
-                                                  Address end) = 0;
-  virtual UpdatingItem* CreateRememberedSetUpdatingItem(
+  virtual std::unique_ptr<UpdatingItem> CreateToSpaceUpdatingItem(
+      MemoryChunk* chunk, Address start, Address end) = 0;
+  virtual std::unique_ptr<UpdatingItem> CreateRememberedSetUpdatingItem(
       MemoryChunk* chunk, RememberedSetUpdatingMode updating_mode) = 0;
 
   template <class Evacuator, class Collector>
-  void CreateAndExecuteEvacuationTasks(Collector* collector,
-                                       ItemParallelJob* job,
-                                       MigrationObserver* migration_observer,
-                                       const intptr_t live_bytes);
+  void CreateAndExecuteEvacuationTasks(
+      Collector* collector,
+      std::vector<std::pair<ParallelWorkItem, MemoryChunk*>> evacuation_items,
+      MigrationObserver* migration_observer, const intptr_t live_bytes);
 
   // Returns whether this page should be moved according to heuristics.
   bool ShouldMovePage(Page* p, intptr_t live_bytes, bool promote_young);
 
-  int CollectToSpaceUpdatingItems(ItemParallelJob* job);
+  int CollectToSpaceUpdatingItems(
+      std::vector<std::unique_ptr<UpdatingItem>>* items);
   template <typename IterateableSpace>
-  int CollectRememberedSetUpdatingItems(ItemParallelJob* job,
-                                        IterateableSpace* space,
-                                        RememberedSetUpdatingMode mode);
+  int CollectRememberedSetUpdatingItems(
+      std::vector<std::unique_ptr<UpdatingItem>>* items,
+      IterateableSpace* space, RememberedSetUpdatingMode mode);
 
-  int NumberOfParallelCompactionTasks(int pages);
-  int NumberOfParallelPointerUpdateTasks(int pages, int slots);
-  int NumberOfParallelToSpacePointerUpdateTasks(int pages);
+  int NumberOfParallelCompactionTasks();
 
   Heap* heap_;
   // Number of old to new slots. Should be computed during MarkLiveObjects.
@@ -378,12 +378,12 @@ class MainMarkingVisitor final
 
   MainMarkingVisitor(MarkingState* marking_state,
                      MarkingWorklists::Local* local_marking_worklists,
-                     WeakObjects* weak_objects, Heap* heap,
+                     WeakObjects::Local* local_weak_objects, Heap* heap,
                      unsigned mark_compact_epoch,
                      BytecodeFlushMode bytecode_flush_mode,
                      bool embedder_tracing_enabled, bool is_forced_gc)
       : MarkingVisitorBase<MainMarkingVisitor<MarkingState>, MarkingState>(
-            kMainThreadTask, local_marking_worklists, weak_objects, heap,
+            local_marking_worklists, local_weak_objects, heap,
             mark_compact_epoch, bytecode_flush_mode, embedder_tracing_enabled,
             is_forced_gc),
         marking_state_(marking_state),
@@ -533,6 +533,7 @@ class MarkCompactCollector final : public MarkCompactCollectorBase {
   }
 
   WeakObjects* weak_objects() { return &weak_objects_; }
+  WeakObjects::Local* local_weak_objects() { return local_weak_objects_.get(); }
 
   inline void AddTransitionArray(TransitionArray array);
 
@@ -710,9 +711,10 @@ class MarkCompactCollector final : public MarkCompactCollectorBase {
   void EvacuatePagesInParallel() override;
   void UpdatePointersAfterEvacuation() override;
 
-  UpdatingItem* CreateToSpaceUpdatingItem(MemoryChunk* chunk, Address start,
-                                          Address end) override;
-  UpdatingItem* CreateRememberedSetUpdatingItem(
+  std::unique_ptr<UpdatingItem> CreateToSpaceUpdatingItem(MemoryChunk* chunk,
+                                                          Address start,
+                                                          Address end) override;
+  std::unique_ptr<UpdatingItem> CreateRememberedSetUpdatingItem(
       MemoryChunk* chunk, RememberedSetUpdatingMode updating_mode) override;
 
   void ReleaseEvacuationCandidates();
@@ -757,6 +759,7 @@ class MarkCompactCollector final : public MarkCompactCollectorBase {
   MarkingWorklists marking_worklists_;
 
   WeakObjects weak_objects_;
+  std::unique_ptr<WeakObjects::Local> local_weak_objects_;
   EphemeronMarking ephemeron_marking_;
 
   std::unique_ptr<MarkingVisitor> marking_visitor_;
@@ -851,9 +854,10 @@ class MinorMarkCompactCollector final : public MarkCompactCollectorBase {
   void EvacuatePagesInParallel() override;
   void UpdatePointersAfterEvacuation() override;
 
-  UpdatingItem* CreateToSpaceUpdatingItem(MemoryChunk* chunk, Address start,
-                                          Address end) override;
-  UpdatingItem* CreateRememberedSetUpdatingItem(
+  std::unique_ptr<UpdatingItem> CreateToSpaceUpdatingItem(MemoryChunk* chunk,
+                                                          Address start,
+                                                          Address end) override;
+  std::unique_ptr<UpdatingItem> CreateRememberedSetUpdatingItem(
       MemoryChunk* chunk, RememberedSetUpdatingMode updating_mode) override;
 
   int NumberOfParallelMarkingTasks(int pages);

@@ -164,8 +164,8 @@ MaybeHandle<String> GetLocalNameString(Isolate* isolate,
   ModuleWireBytes wire_bytes{native_module->wire_bytes()};
   // Bounds were checked during decoding.
   DCHECK(wire_bytes.BoundsCheck(name_ref));
-  Vector<const char> name = wire_bytes.GetNameOrNull(name_ref);
-  if (name.begin() == nullptr) return {};
+  WasmName name = wire_bytes.GetNameOrNull(name_ref);
+  if (name.size() == 0) return {};
   return isolate->factory()->NewStringFromUtf8(name);
 }
 
@@ -338,6 +338,12 @@ class DebugInfoImpl {
     if (num_locals + index >= value_count) return {};
     return GetValue(scope.debug_side_table_entry, num_locals + index, fp,
                     debug_break_fp);
+  }
+
+  const WasmFunction& GetFunctionAtAddress(Address pc) {
+    FrameInspectionScope scope(this, pc);
+    auto* module = native_module_->module();
+    return module->functions[scope.code->index()];
   }
 
   Handle<JSObject> GetLocalScopeObject(Isolate* isolate, Address pc, Address fp,
@@ -907,6 +913,10 @@ int DebugInfo::GetStackDepth(Address pc) { return impl_->GetStackDepth(pc); }
 WasmValue DebugInfo::GetStackValue(int index, Address pc, Address fp,
                                    Address debug_break_fp) {
   return impl_->GetStackValue(index, pc, fp, debug_break_fp);
+}
+
+const wasm::WasmFunction& DebugInfo::GetFunctionAtAddress(Address pc) {
+  return impl_->GetFunctionAtAddress(pc);
 }
 
 Handle<JSObject> DebugInfo::GetLocalScopeObject(Isolate* isolate, Address pc,

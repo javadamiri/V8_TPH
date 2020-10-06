@@ -483,20 +483,6 @@ inline std::ostream& operator<<(std::ostream& os, DeoptimizeKind kind) {
   UNREACHABLE();
 }
 
-enum class IsolateAllocationMode {
-  // Allocate Isolate in C++ heap using default new/delete operators.
-  kInCppHeap,
-
-  // Allocate Isolate in a committed region inside V8 heap reservation.
-  kInV8Heap,
-
-#ifdef V8_COMPRESS_POINTERS
-  kDefault = kInV8Heap,
-#else
-  kDefault = kInCppHeap,
-#endif
-};
-
 // Indicates whether the lookup is related to sloppy-mode block-scoped
 // function hoisting, and is a synthetic assignment for that.
 enum class LookupHoistingMode { kNormal, kLegacySloppy };
@@ -1617,7 +1603,6 @@ enum class LoadSensitivity {
   V(TrapDivUnrepresentable)        \
   V(TrapRemByZero)                 \
   V(TrapFloatUnrepresentable)      \
-  V(TrapFuncInvalid)               \
   V(TrapFuncSigMismatch)           \
   V(TrapDataSegmentDropped)        \
   V(TrapElemSegmentDropped)        \
@@ -1701,6 +1686,17 @@ enum class DynamicMapChecksStatus : uint8_t {
 };
 
 }  // namespace internal
+
+// Tag dispatching support for acquire loads and release stores.
+struct AcquireLoadTag {};
+struct RelaxedLoadTag {};
+struct ReleaseStoreTag {};
+struct RelaxedStoreTag {};
+static constexpr AcquireLoadTag kAcquireLoad;
+static constexpr RelaxedLoadTag kRelaxedLoad;
+static constexpr ReleaseStoreTag kReleaseStore;
+static constexpr RelaxedStoreTag kRelaxedStore;
+
 }  // namespace v8
 
 namespace i = v8::internal;

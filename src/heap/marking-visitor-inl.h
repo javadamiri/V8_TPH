@@ -56,7 +56,7 @@ void MarkingVisitorBase<ConcreteVisitor, MarkingState>::ProcessWeakHeapObject(
     // If we do not know about liveness of the value, we have to process
     // the reference when we know the liveness of the whole transitive
     // closure.
-    weak_objects_->weak_references.Push(task_id_, std::make_pair(host, slot));
+    local_weak_objects_->weak_references.Push(std::make_pair(host, slot));
   }
 }
 
@@ -89,8 +89,8 @@ void MarkingVisitorBase<ConcreteVisitor, MarkingState>::VisitEmbeddedPointer(
   HeapObject object = rinfo->target_object();
   if (!concrete_visitor()->marking_state()->IsBlackOrGrey(object)) {
     if (host.IsWeakObject(object)) {
-      weak_objects_->weak_objects_in_code.Push(task_id_,
-                                               std::make_pair(object, host));
+      local_weak_objects_->weak_objects_in_code.Push(
+          std::make_pair(object, host));
     } else {
       MarkObject(host, object);
     }
@@ -131,7 +131,7 @@ int MarkingVisitorBase<ConcreteVisitor, MarkingState>::VisitJSFunction(
   // Check if the JSFunction needs reset due to bytecode being flushed.
   if (bytecode_flush_mode_ != BytecodeFlushMode::kDoNotFlushBytecode &&
       object.NeedsResetDueToFlushedBytecode()) {
-    weak_objects_->flushed_js_functions.Push(task_id_, object);
+    local_weak_objects_->flushed_js_functions.Push(object);
   }
   return size;
 }
@@ -148,7 +148,7 @@ int MarkingVisitorBase<ConcreteVisitor, MarkingState>::VisitSharedFunctionInfo(
   // If the SharedFunctionInfo has old bytecode, mark it as flushable,
   // otherwise visit the function data field strongly.
   if (shared_info.ShouldFlushBytecode(bytecode_flush_mode_)) {
-    weak_objects_->bytecode_flushing_candidates.Push(task_id_, shared_info);
+    local_weak_objects_->bytecode_flushing_candidates.Push(shared_info);
   } else {
     VisitPointer(shared_info,
                  shared_info.RawField(SharedFunctionInfo::kFunctionDataOffset));
@@ -258,7 +258,7 @@ template <typename ConcreteVisitor, typename MarkingState>
 int MarkingVisitorBase<ConcreteVisitor, MarkingState>::VisitEphemeronHashTable(
     Map map, EphemeronHashTable table) {
   if (!concrete_visitor()->ShouldVisit(table)) return 0;
-  weak_objects_->ephemeron_hash_tables.Push(task_id_, table);
+  local_weak_objects_->ephemeron_hash_tables.Push(table);
 
   for (InternalIndex i : table.IterateEntries()) {
     ObjectSlot key_slot =
@@ -284,8 +284,8 @@ int MarkingVisitorBase<ConcreteVisitor, MarkingState>::VisitEphemeronHashTable(
         // Revisit ephemerons with both key and value unreachable at end
         // of concurrent marking cycle.
         if (concrete_visitor()->marking_state()->IsWhite(value)) {
-          weak_objects_->discovered_ephemerons.Push(task_id_,
-                                                    Ephemeron{key, value});
+          local_weak_objects_->discovered_ephemerons.Push(
+              Ephemeron{key, value});
         }
       }
     }
@@ -309,7 +309,7 @@ int MarkingVisitorBase<ConcreteVisitor, MarkingState>::VisitJSWeakRef(
     } else {
       // JSWeakRef points to a potentially dead object. We have to process
       // them when we know the liveness of the whole transitive closure.
-      weak_objects_->js_weak_refs.Push(task_id_, weak_ref);
+      local_weak_objects_->js_weak_refs.Push(weak_ref);
     }
   }
   return size;
@@ -339,7 +339,7 @@ int MarkingVisitorBase<ConcreteVisitor, MarkingState>::VisitWeakCell(
     // WeakCell points to a potentially dead object or a dead unregister
     // token. We have to process them when we know the liveness of the whole
     // transitive closure.
-    weak_objects_->weak_cells.Push(task_id_, weak_cell);
+    local_weak_objects_->weak_cells.Push(weak_cell);
   }
   return size;
 }
@@ -401,7 +401,7 @@ int MarkingVisitorBase<ConcreteVisitor, MarkingState>::VisitMap(Map meta_map,
     // non-empty descriptor array is marked, its header is also visited. The
     // slot holding the descriptor array will be implicitly recorded when the
     // pointer fields of this map are visited.
-    DescriptorArray descriptors = map.synchronized_instance_descriptors();
+    DescriptorArray descriptors = map.instance_descriptors(kAcquireLoad);
     size += MarkDescriptorArrayBlack(descriptors);
     int number_of_own_descriptors = map.NumberOfOwnDescriptors();
     if (number_of_own_descriptors) {
@@ -430,7 +430,7 @@ int MarkingVisitorBase<ConcreteVisitor, MarkingState>::VisitTransitionArray(
   this->VisitMapPointer(array);
   int size = TransitionArray::BodyDescriptor::SizeOf(map, array);
   TransitionArray::BodyDescriptor::IterateBody(map, array, size, this);
-  weak_objects_->transition_arrays.Push(task_id_, array);
+  local_weak_objects_->transition_arrays.Push(array);
   return size;
 }
 

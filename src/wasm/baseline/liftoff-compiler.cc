@@ -260,7 +260,7 @@ class LiftoffCompiler {
   // TODO(clemensb): Make this a template parameter.
   static constexpr Decoder::ValidateFlag validate = Decoder::kBooleanValidation;
 
-  using Value = ValueBase;
+  using Value = ValueBase<validate>;
 
   static constexpr auto kI32 = ValueType::kI32;
   static constexpr auto kI64 = ValueType::kI64;
@@ -273,7 +273,7 @@ class LiftoffCompiler {
     LiftoffAssembler::CacheState state;
   };
 
-  struct Control : public ControlBase<Value> {
+  struct Control : public ControlBase<Value, validate> {
     std::unique_ptr<ElseState> else_state;
     LiftoffAssembler::CacheState label_state;
     MovableLabel label;
@@ -3916,9 +3916,10 @@ class LiftoffCompiler {
 
     // Bounds check against the table size.
     Label* invalid_func_label = AddOutOfLineTrap(
-        decoder->position(), WasmCode::kThrowWasmTrapFuncInvalid);
+        decoder->position(), WasmCode::kThrowWasmTrapTableOutOfBounds);
 
-    uint32_t canonical_sig_num = env_->module->signature_ids[imm.sig_index];
+    uint32_t canonical_sig_num =
+        env_->module->canonicalized_type_ids[imm.sig_index];
     DCHECK_GE(canonical_sig_num, 0);
     DCHECK_GE(kMaxInt, canonical_sig_num);
 

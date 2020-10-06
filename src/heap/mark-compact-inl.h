@@ -86,7 +86,7 @@ void MarkCompactCollector::RecordSlot(MemoryChunk* source_page,
 }
 
 void MarkCompactCollector::AddTransitionArray(TransitionArray array) {
-  weak_objects_.transition_arrays.Push(kMainThreadTask, array);
+  local_weak_objects()->transition_arrays.Push(array);
 }
 
 template <typename MarkingState>
@@ -135,8 +135,8 @@ void MainMarkingVisitor<MarkingState>::MarkDescriptorArrayFromWriteBarrier(
 }
 
 template <LiveObjectIterationMode mode>
-LiveObjectRange<mode>::iterator::iterator(MemoryChunk* chunk, Bitmap* bitmap,
-                                          Address start)
+LiveObjectRange<mode>::iterator::iterator(const MemoryChunk* chunk,
+                                          Bitmap* bitmap, Address start)
     : chunk_(chunk),
       one_word_filler_map_(
           ReadOnlyRoots(chunk->heap()).one_pointer_filler_map()),

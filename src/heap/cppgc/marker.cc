@@ -194,12 +194,9 @@ MarkerBase::~MarkerBase() {
   if (!marking_worklists_.not_fully_constructed_worklist()->IsEmpty()) {
 #if DEBUG
     DCHECK_NE(MarkingConfig::StackState::kNoHeapPointers, config_.stack_state);
-    HeapObjectHeader* header;
-    MarkingWorklists::NotFullyConstructedWorklist::Local& local =
-        mutator_marking_state_.not_fully_constructed_worklist();
-    while (local.Pop(&header)) {
-      DCHECK(header->IsMarked());
-    }
+    std::unordered_set<HeapObjectHeader*> objects =
+        mutator_marking_state_.not_fully_constructed_worklist().Extract();
+    for (HeapObjectHeader* object : objects) DCHECK(object->IsMarked());
 #else
     marking_worklists_.not_fully_constructed_worklist()->Clear();
 #endif
@@ -242,6 +239,8 @@ void MarkerBase::LeaveAtomicPause() {
   heap().stats_collector()->NotifyMarkingCompleted(
       // GetOverallMarkedBytes also includes concurrently marked bytes.
       schedule_.GetOverallMarkedBytes());
+  is_marking_started_ = false;
+  ProcessWeakness();
 }
 
 void MarkerBase::FinishMarking(MarkingConfig::StackState stack_state) {
@@ -251,7 +250,6 @@ void MarkerBase::FinishMarking(MarkingConfig::StackState stack_state) {
                                v8::base::TimeTicks::Max());
   mutator_marking_state_.Publish();
   LeaveAtomicPause();
-  is_marking_started_ = false;
 }
 
 void MarkerBase::ProcessWeakness() {
@@ -383,15 +381,14 @@ bool MarkerBase::ProcessWorklistsWithDeadline(
 }
 
 void MarkerBase::MarkNotFullyConstructedObjects() {
-  HeapObjectHeader* header;
-  MarkingWorklists::NotFullyConstructedWorklist::Local& local =
-      mutator_marking_state_.not_fully_constructed_worklist();
-  while (local.Pop(&header)) {
-    DCHECK(header);
-    DCHECK(header->IsMarked<HeapObjectHeader::AccessMode::kNonAtomic>());
+  std::unordered_set<HeapObjectHeader*> objects =
+      mutator_marking_state_.not_fully_constructed_worklist().Extract();
+  for (HeapObjectHeader* object : objects) {
+    DCHECK(object);
+    DCHECK(object->IsMarked<HeapObjectHeader::AccessMode::kNonAtomic>());
     // TraceConservativelyIfNeeded will either push to a worklist
     // or trace conservatively and call AccountMarkedBytes.
-    conservative_visitor().TraceConservativelyIfNeeded(*header);
+    conservative_visitor().TraceConservativelyIfNeeded(*object);
   }
 }
 

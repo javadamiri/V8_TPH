@@ -349,10 +349,6 @@ if (v8_enable_shared_ro_heap && v8_enable_pointer_compression) {
 assert(!v8_use_multi_snapshots || !v8_control_flow_integrity,
        "Control-flow integrity does not support multisnapshots")
 
-assert(
-    !v8_enable_pointer_compression || !v8_enable_shared_ro_heap,
-    "Pointer compression is not supported with shared read-only heap enabled")
-
 assert(!v8_enable_heap_sandbox || v8_enable_pointer_compression,
        "V8 Heap Sandbox requires pointer compression")
 
@@ -942,6 +938,10 @@ config("toolchain") {
       # GCC assumes that control can get past an exhaustive switch and then
       # warns if there's no return there (see https://crbug.com/v8/7658).
       "-Wno-return-type",
+
+      # Disable gcc warnings for using enum constant in boolean context.
+      # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=97266
+      "-Wno-int-in-bool-context",
     ]
   }
 
@@ -1343,6 +1343,8 @@ template("run_torque") {
       "$target_gen_dir/torque-generated/internal-class-definitions-inl.h",
       "$target_gen_dir/torque-generated/exported-class-definitions.h",
       "$target_gen_dir/torque-generated/exported-class-definitions-inl.h",
+      "$target_gen_dir/torque-generated/runtime-macros.cc",
+      "$target_gen_dir/torque-generated/runtime-macros.h",
     ]
 
     outputs = []
@@ -1459,6 +1461,7 @@ v8_source_set("torque_generated_definitions") {
     "$target_gen_dir/torque-generated/class-verifiers.h",
     "$target_gen_dir/torque-generated/factory.cc",
     "$target_gen_dir/torque-generated/objects-printer.cc",
+    "$target_gen_dir/torque-generated/runtime-macros.cc",
   ]
 
   configs = [ ":internal_config" ]
@@ -2678,6 +2681,8 @@ v8_source_set("v8_base_without_compiler") {
     "src/heap/stress-scavenge-observer.h",
     "src/heap/sweeper.cc",
     "src/heap/sweeper.h",
+    "src/heap/weak-object-worklists.cc",
+    "src/heap/weak-object-worklists.h",
     "src/heap/worklist.h",
     "src/ic/call-optimization.cc",
     "src/ic/call-optimization.h",
@@ -3090,6 +3095,8 @@ v8_source_set("v8_base_without_compiler") {
     "src/profiler/sampling-heap-profiler.h",
     "src/profiler/strings-storage.cc",
     "src/profiler/strings-storage.h",
+    "src/profiler/symbolizer.cc",
+    "src/profiler/symbolizer.h",
     "src/profiler/tick-sample.cc",
     "src/profiler/tick-sample.h",
     "src/profiler/tracing-cpu-profiler.cc",
@@ -3858,6 +3865,8 @@ v8_source_set("torque_base") {
 
   sources = [
     "src/torque/ast.h",
+    "src/torque/cc-generator.cc",
+    "src/torque/cc-generator.h",
     "src/torque/cfg.cc",
     "src/torque/cfg.h",
     "src/torque/class-debug-reader-generator.cc",
@@ -3885,6 +3894,8 @@ v8_source_set("torque_base") {
     "src/torque/server-data.h",
     "src/torque/source-positions.cc",
     "src/torque/source-positions.h",
+    "src/torque/torque-code-generator.cc",
+    "src/torque/torque-code-generator.h",
     "src/torque/torque-compiler.cc",
     "src/torque/torque-compiler.h",
     "src/torque/torque-parser.cc",

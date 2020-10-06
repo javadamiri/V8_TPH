@@ -5110,6 +5110,10 @@ void Heap::EnableInlineAllocation() {
 
 
 void Heap::DisableInlineAllocation() {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) {
+    inline_allocation_disabled_ = true;
+    return;
+  }
   if (inline_allocation_disabled_) return;
   inline_allocation_disabled_ = true;
 

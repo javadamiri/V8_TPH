@@ -5853,6 +5853,7 @@ void Heap::CheckHandleCount() {
 }
 
 void Heap::ClearRecordedSlot(HeapObject object, ObjectSlot slot) {
+  if (V8_ENABLE_THIRD_PARTY_HEAP_BOOL) return;
 #ifndef V8_DISABLE_WRITE_BARRIERS
   DCHECK(!IsLargeObject(object));
   Page* page = Page::FromAddress(slot.address());
